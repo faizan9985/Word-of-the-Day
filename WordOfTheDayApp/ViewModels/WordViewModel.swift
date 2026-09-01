@@ -1,0 +1,41 @@
+// Target membership: WordOfTheDay app only
+
+import Combine
+import Foundation
+import WidgetKit
+
+@MainActor
+final class WordViewModel: ObservableObject {
+    @Published private(set) var entry: WordEntry
+    @Published private(set) var isLoading = false
+    @Published private(set) var errorMessage: String?
+
+    private let service: any WordAPIProviding
+    private let storage: WordStorage
+
+    init(
+        service: any WordAPIProviding = WordAPIService(),
+        storage: WordStorage = WordStorage()
+    ) {
+        self.service = service
+        self.storage = storage
+        self.entry = storage.loadCurrentWord() ?? .fallback
+    }
+
+    func refresh() async {
+        guard !isLoading else { return }
+        isLoading = true
+        errorMessage = nil
+        defer { isLoading = false }
+
+        let newEntry = await service.fetchDailyWord()
+        entry = newEntry
+
+        do {
+            try storage.saveCurrentWord(newEntry)
+            WidgetCenter.shared.reloadAllTimelines()
+        } catch {
+            errorMessage = error.localizedDescription
+        }
+    }
+}
