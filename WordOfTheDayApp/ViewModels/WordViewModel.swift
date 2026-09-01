@@ -32,8 +32,8 @@ final class WordViewModel: ObservableObject {
             let newEntry = try await service.fetchDailyWord()
             try Task.checkCancellation()
 
-            entry = newEntry
             try storage.saveCurrentWord(newEntry)
+            entry = newEntry
             WidgetCenter.shared.reloadAllTimelines()
         } catch is CancellationError {
             return
