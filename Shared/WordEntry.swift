@@ -10,6 +10,8 @@ struct WordEntry: Codable, Identifiable, Sendable, Equatable {
     let partOfSpeech: String
     let definition: String
     let exampleSentence: String
+    let synonyms: [String]?
+    let antonyms: [String]?
     let date: Date
 
     init(
@@ -19,6 +21,8 @@ struct WordEntry: Codable, Identifiable, Sendable, Equatable {
         partOfSpeech: String,
         definition: String,
         exampleSentence: String,
+        synonyms: [String]? = nil,
+        antonyms: [String]? = nil,
         date: Date = .now
     ) {
         self.id = id
@@ -27,6 +31,8 @@ struct WordEntry: Codable, Identifiable, Sendable, Equatable {
         self.partOfSpeech = partOfSpeech
         self.definition = definition
         self.exampleSentence = exampleSentence
+        self.synonyms = synonyms
+        self.antonyms = antonyms
         self.date = date
     }
 }
@@ -38,6 +44,8 @@ extension WordEntry {
         phonetic: "/ɪˈfem.ər.əl/",
         partOfSpeech: "adjective",
         definition: "Lasting for only a short time.",
-        exampleSentence: "The ephemeral glow of sunset disappeared beneath the horizon."
+        exampleSentence: "The ephemeral glow of sunset disappeared beneath the horizon.",
+        synonyms: ["fleeting", "transient", "momentary", "short-lived"],
+        antonyms: ["permanent", "enduring", "lasting", "eternal"]
     )
 }

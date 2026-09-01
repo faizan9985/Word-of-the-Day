@@ -2,6 +2,15 @@
 
 This repository contains source files for an iOS app and Lock Screen widget.
 
+## Included features
+
+- Daily word with definition, example, phonetic spelling, and speech playback
+- SwiftData vocabulary history with bookmark filtering
+- Opt-in daily local notification at 9:00 AM
+- Inline, rectangular, and circular Lock Screen widgets
+- Small and medium Home Screen widgets
+- Shared App Group cache and midnight widget timeline refresh
+
 ## Open and run in Xcode
 
 1. Open `WordOfTheDay.xcodeproj` and select the `WordOfTheDay` scheme.
@@ -28,11 +37,14 @@ Set `WORD_API_ENDPOINT` and, if required, `WORD_API_KEY` in
   "partOfSpeech": "adjective",
   "definition": "Lasting for only a short time.",
   "exampleSentence": "The ephemeral glow faded.",
+  "synonyms": ["fleeting", "transient", "momentary"],
+  "antonyms": ["permanent", "enduring", "lasting"],
   "date": "2026-08-31T12:00:00Z"
 }
 ```
 
-`id` and `date` are optional. With no endpoint, invalid configuration, or a
+`id`, `date`, `synonyms`, and `antonyms` are optional. With no endpoint, invalid configuration, or a
 failed request, the service returns the built-in fallback entry.
 
-The minimum deployment target for Lock Screen accessory widgets is iOS 16.
+The project deployment target is iOS 17 because vocabulary history uses
+SwiftData.

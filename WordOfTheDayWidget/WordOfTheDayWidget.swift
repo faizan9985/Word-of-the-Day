@@ -17,7 +17,13 @@ struct WordOfTheDayWidget: Widget {
             }
         }
         .configurationDisplayName("Word of the Day")
-        .description("See today's vocabulary word on your Lock Screen.")
-        .supportedFamilies([.accessoryRectangular, .accessoryInline])
+        .description("See today's vocabulary word on your Lock Screen or Home Screen.")
+        .supportedFamilies([
+            .accessoryRectangular,
+            .accessoryInline,
+            .accessoryCircular,
+            .systemSmall,
+            .systemMedium
+        ])
     }
 }

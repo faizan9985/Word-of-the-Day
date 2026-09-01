@@ -1,10 +1,17 @@
 // Target membership: WordOfTheDay app only
 
+import SwiftData
 import SwiftUI
 
 struct ContentView: View {
+    @Environment(\.modelContext) private var modelContext
+    @Query private var savedWords: [SavedWord]
     @StateObject private var viewModel = WordViewModel()
     @StateObject private var speechService = SpeechService()
+
+    private var savedCurrentWord: SavedWord? {
+        savedWords.first { $0.id == viewModel.entry.id }
+    }
 
     var body: some View {
         NavigationStack {
@@ -17,6 +24,16 @@ struct ContentView: View {
                         text: "“\(viewModel.entry.exampleSentence)”",
                         italic: true
                     )
+                    wordListCard(
+                        title: "Synonyms",
+                        words: viewModel.entry.synonyms,
+                        emptyMessage: "No synonyms available."
+                    )
+                    wordListCard(
+                        title: "Antonyms",
+                        words: viewModel.entry.antonyms,
+                        emptyMessage: "No antonyms available."
+                    )
 
                     if let errorMessage = viewModel.errorMessage {
                         Text(errorMessage)
@@ -28,11 +45,33 @@ struct ContentView: View {
             }
             .background(Color(.systemGroupedBackground))
             .navigationTitle("Word of the Day")
+            .toolbar {
+                ToolbarItemGroup(placement: .topBarTrailing) {
+                    Button(action: toggleCurrentBookmark) {
+                        Image(systemName: savedCurrentWord?.isBookmarked == true ? "bookmark.fill" : "bookmark")
+                    }
+                    .accessibilityLabel(savedCurrentWord?.isBookmarked == true ? "Remove bookmark" : "Bookmark word")
+
+                    NavigationLink(destination: HistoryView()) {
+                        Image(systemName: "books.vertical")
+                    }
+                    .accessibilityLabel("Vocabulary history")
+
+                    NavigationLink(destination: SettingsView()) {
+                        Image(systemName: "gearshape")
+                    }
+                    .accessibilityLabel("Settings")
+                }
+            }
             .refreshable {
                 await viewModel.refresh()
             }
             .task {
+                WordHistoryStore.save(viewModel.entry, in: modelContext)
                 await viewModel.refresh()
+            }
+            .onChange(of: viewModel.entry) { _, entry in
+                WordHistoryStore.save(entry, in: modelContext)
             }
             .overlay {
                 if viewModel.isLoading {
@@ -41,6 +80,16 @@ struct ContentView: View {
                         .background(.regularMaterial, in: RoundedRectangle(cornerRadius: 14))
                 }
             }
+        }
+    }
+
+    private func toggleCurrentBookmark() {
+        if let savedCurrentWord {
+            WordHistoryStore.toggleBookmark(for: savedCurrentWord, in: modelContext)
+        } else {
+            let savedWord = SavedWord(entry: viewModel.entry, isBookmarked: true)
+            modelContext.insert(savedWord)
+            try? modelContext.save()
         }
     }
 
@@ -78,7 +127,7 @@ struct ContentView: View {
         }
         .padding(22)
         .frame(maxWidth: .infinity, alignment: .leading)
-        .background(.background, in: RoundedRectangle(cornerRadius: 22))
+        .cardStyle(cornerRadius: 22)
     }
 
     private func informationCard(title: String, text: String, italic: Bool = false) -> some View {
@@ -92,12 +141,42 @@ struct ContentView: View {
         }
         .padding(20)
         .frame(maxWidth: .infinity, alignment: .leading)
-        .background(.background, in: RoundedRectangle(cornerRadius: 18))
+        .cardStyle(cornerRadius: 18)
+    }
+
+    private func wordListCard(title: String, words: [String]?, emptyMessage: String) -> some View {
+        let displayText = words?.filter { !$0.isEmpty }.joined(separator: "  •  ") ?? ""
+        let hasWords = !displayText.isEmpty
+
+        return VStack(alignment: .leading, spacing: 10) {
+            Text(title.uppercased())
+                .font(.caption.weight(.bold))
+                .foregroundStyle(.secondary)
+            Text(hasWords ? displayText : emptyMessage)
+                .font(.body)
+                .foregroundStyle(hasWords ? Color.primary : Color.secondary)
+                .lineSpacing(5)
+        }
+        .padding(20)
+        .frame(maxWidth: .infinity, alignment: .leading)
+        .cardStyle(cornerRadius: 18)
+    }
+}
+
+private extension View {
+    func cardStyle(cornerRadius: CGFloat) -> some View {
+        let shape = RoundedRectangle(cornerRadius: cornerRadius, style: .continuous)
+
+        return background(Color(.secondarySystemGroupedBackground), in: shape)
+            .overlay {
+                shape.stroke(Color(.separator).opacity(0.65), lineWidth: 1)
+            }
     }
 }
 
 struct ContentView_Previews: PreviewProvider {
     static var previews: some View {
         ContentView()
+            .modelContainer(for: SavedWord.self, inMemory: true)
     }
 }

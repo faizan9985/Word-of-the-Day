@@ -3,11 +3,10 @@
 import Foundation
 
 protocol WordAPIProviding: Sendable {
-    func fetchDailyWord() async -> WordEntry
+    func fetchDailyWord() async throws -> WordEntry
 }
 
-/// Fetches a daily word and always returns usable content by falling back to a
-/// bundled value when configuration, transport, or decoding fails.
+/// Fetches a daily word from the configured remote service.
 struct WordAPIService: WordAPIProviding {
     struct Configuration: Sendable {
         let endpoint: URL?
@@ -37,11 +36,14 @@ struct WordAPIService: WordAPIProviding {
         self.session = session
     }
 
-    func fetchDailyWord() async -> WordEntry {
+    func fetchDailyWord() async throws -> WordEntry {
         do {
             return try await fetchRemoteWord()
         } catch {
-            return .fallback
+            if Task.isCancelled {
+                throw CancellationError()
+            }
+            throw error
         }
     }
 
@@ -79,6 +81,8 @@ private extension WordAPIService {
         let partOfSpeech: String
         let definition: String
         let exampleSentence: String
+        let synonyms: [String]?
+        let antonyms: [String]?
         let date: Date?
 
         var wordEntry: WordEntry {
@@ -89,6 +93,8 @@ private extension WordAPIService {
                 partOfSpeech: partOfSpeech,
                 definition: definition,
                 exampleSentence: exampleSentence,
+                synonyms: synonyms,
+                antonyms: antonyms,
                 date: date ?? .now
             )
         }

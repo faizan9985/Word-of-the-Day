@@ -28,12 +28,15 @@ final class WordViewModel: ObservableObject {
         errorMessage = nil
         defer { isLoading = false }
 
-        let newEntry = await service.fetchDailyWord()
-        entry = newEntry
-
         do {
+            let newEntry = try await service.fetchDailyWord()
+            try Task.checkCancellation()
+
+            entry = newEntry
             try storage.saveCurrentWord(newEntry)
             WidgetCenter.shared.reloadAllTimelines()
+        } catch is CancellationError {
+            return
         } catch {
             errorMessage = error.localizedDescription
         }
