@@ -20,9 +20,13 @@
 	<string>1</string>
 	<key>UILaunchScreen</key>
 	<dict/>
+	<key>MW_DICTIONARY_API_KEY</key>
+	<string>$(MW_DICTIONARY_API_KEY)</string>
+	<key>MW_THESAURUS_API_KEY</key>
+	<string>$(MW_THESAURUS_API_KEY)</string>
 	<key>WORD_API_ENDPOINT</key>
-	<string></string>
+	<string>$(WORD_API_ENDPOINT)</string>
 	<key>WORD_API_KEY</key>
-	<string></string>
+	<string>$(WORD_API_KEY)</string>
 </dict>
 </plist>

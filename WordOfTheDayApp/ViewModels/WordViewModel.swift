@@ -24,6 +24,14 @@ final class WordViewModel: ObservableObject {
 
     func refresh() async {
         guard !isLoading else { return }
+
+        if let savedEntry = storage.loadCurrentWord(),
+           Calendar.current.isDate(savedEntry.date, inSameDayAs: Date()) {
+            entry = savedEntry
+            errorMessage = nil
+            return
+        }
+
         isLoading = true
         errorMessage = nil
         defer { isLoading = false }
