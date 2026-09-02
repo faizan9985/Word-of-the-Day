@@ -9,10 +9,20 @@ actor NotificationService {
     private let center = UNUserNotificationCenter.current()
     private let requestIdentifier = "daily-word-reminder"
 
-    func setDailyReminder(enabled: Bool, hour: Int = 9) async throws {
+    func setDailyReminder(enabled: Bool, hour: Int, minute: Int) async throws {
         if enabled {
-            let granted = try await center.requestAuthorization(options: [.alert, .sound])
-            guard granted else { throw NotificationError.permissionDenied }
+            let settings = await center.notificationSettings()
+            switch settings.authorizationStatus {
+            case .notDetermined:
+                let granted = try await center.requestAuthorization(options: [.alert, .sound])
+                guard granted else { throw NotificationError.permissionDenied }
+            case .authorized, .provisional, .ephemeral:
+                break
+            case .denied:
+                throw NotificationError.permissionDenied
+            @unknown default:
+                throw NotificationError.permissionDenied
+            }
 
             let content = UNMutableNotificationContent()
             content.title = "Your word of the day is ready"
@@ -21,6 +31,7 @@ actor NotificationService {
 
             var components = DateComponents()
             components.hour = hour
+            components.minute = minute
             let trigger = UNCalendarNotificationTrigger(
                 dateMatching: components,
                 repeats: true
