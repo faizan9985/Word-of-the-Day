@@ -113,7 +113,7 @@ struct ContentView: View {
                 Spacer()
 
                 Button {
-                    speechService.pronounce(viewModel.entry.word)
+                    speechService.pronounce(audioURL: viewModel.entry.pronunciationAudioURL)
                 } label: {
                     Label("Pronounce", systemImage: "speaker.wave.2.fill")
                         .labelStyle(.iconOnly)
@@ -122,6 +122,7 @@ struct ContentView: View {
                 }
                 .buttonStyle(.bordered)
                 .clipShape(Circle())
+                .disabled(viewModel.entry.pronunciationAudioURL == nil)
                 .accessibilityLabel("Pronounce \(viewModel.entry.word)")
             }
         }

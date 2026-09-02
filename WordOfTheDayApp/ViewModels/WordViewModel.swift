@@ -12,6 +12,7 @@ final class WordViewModel: ObservableObject {
 
     private let service: any WordAPIProviding
     private let storage: WordStorage
+    private var attemptedAudioEnrichmentWords = Set<String>()
 
     init(
         service: any WordAPIProviding = WordAPIService(),
@@ -29,6 +30,42 @@ final class WordViewModel: ObservableObject {
            Calendar.current.isDate(savedEntry.date, inSameDayAs: Date()) {
             entry = savedEntry
             errorMessage = nil
+
+            guard savedEntry.pronunciationAudioURL == nil else { return }
+
+            let wordKey = savedEntry.word.lowercased()
+            guard attemptedAudioEnrichmentWords.insert(wordKey).inserted else { return }
+
+            isLoading = true
+            defer { isLoading = false }
+
+            do {
+                guard let audioURL = try await service.fetchPronunciationAudioURL(
+                    for: savedEntry.word
+                ) else {
+                    return
+                }
+                try Task.checkCancellation()
+
+                let enrichedEntry = WordEntry(
+                    id: savedEntry.id,
+                    word: savedEntry.word,
+                    phonetic: savedEntry.phonetic,
+                    pronunciationAudioURL: audioURL,
+                    partOfSpeech: savedEntry.partOfSpeech,
+                    definition: savedEntry.definition,
+                    exampleSentence: savedEntry.exampleSentence,
+                    synonyms: savedEntry.synonyms,
+                    antonyms: savedEntry.antonyms,
+                    date: savedEntry.date
+                )
+                try storage.saveCurrentWord(enrichedEntry)
+                entry = enrichedEntry
+            } catch is CancellationError {
+                attemptedAudioEnrichmentWords.remove(wordKey)
+            } catch {
+                return
+            }
             return
         }
 

@@ -4,6 +4,7 @@ import Foundation
 
 protocol WordAPIProviding: Sendable {
     func fetchDailyWord() async throws -> WordEntry
+    func fetchPronunciationAudioURL(for word: String) async throws -> URL?
 }
 
 /// Builds a daily word from bundled candidates and Merriam-Webster lookups.
@@ -44,6 +45,41 @@ struct WordAPIService: WordAPIProviding {
             }
             throw error
         }
+    }
+
+    func fetchPronunciationAudioURL(for word: String) async throws -> URL? {
+        try Task.checkCancellation()
+
+        guard let dictionaryKey = configuration.dictionaryAPIKey,
+              !dictionaryKey.isEmpty else {
+            throw APIError.missingConfiguration("MW_DICTIONARY_API_KEY")
+        }
+        guard let dictionaryEndpoint = URL(
+            string: "https://www.dictionaryapi.com/api/v3/references/collegiate/json"
+        ) else {
+            throw APIError.invalidURL("dictionary pronunciation lookup")
+        }
+
+        let results: [DictionaryLookupResult] = try await request(
+            dictionaryEndpoint.appendingPathComponent(word),
+            queryItems: [URLQueryItem(name: "key", value: dictionaryKey)],
+            name: "dictionary pronunciation lookup"
+        )
+        try Task.checkCancellation()
+
+        return results
+            .compactMap(\.entry)
+            .flatMap { $0.headword?.pronunciations ?? [] }
+            .compactMap { pronunciation -> String? in
+                guard let identifier = pronunciation.sound?.audio?
+                    .trimmingCharacters(in: .whitespacesAndNewlines),
+                      !identifier.isEmpty else {
+                    return nil
+                }
+                return identifier
+            }
+            .compactMap(makePronunciationAudioURL)
+            .first
     }
 
     private func fetchCompleteWord() async throws -> WordEntry {
@@ -149,11 +185,25 @@ struct WordAPIService: WordAPIProviding {
         let definition = firstNonEmpty(
             dictionaryEntries.flatMap { ($0.shortDefinitions ?? []).map(sanitize) }
         ) ?? ""
-        let pronunciation = firstNonEmpty(
-            dictionaryEntries.flatMap { entry in
-                entry.headword?.pronunciations?.map { sanitize($0.written) } ?? []
+        let pronunciations = dictionaryEntries.flatMap {
+            $0.headword?.pronunciations ?? []
+        }
+        let writtenPronunciations = pronunciations.compactMap { pronunciation -> String? in
+            let written = sanitize(pronunciation.written)
+            return written.isEmpty ? nil : written
+        }
+        let audioIdentifiers = pronunciations.compactMap { pronunciation -> String? in
+            guard let identifier = pronunciation.sound?.audio?
+                .trimmingCharacters(in: .whitespacesAndNewlines),
+                  !identifier.isEmpty else {
+                return nil
             }
-        ) ?? ""
+            return identifier
+        }
+        let pronunciation = writtenPronunciations.first ?? ""
+        let pronunciationAudioURL = audioIdentifiers
+            .compactMap(makePronunciationAudioURL)
+            .first
         let example = firstNonEmpty(
             dictionaryEntries.compactMap { firstExample(in: $0.definitionSections) }
         ) ?? ""
@@ -171,6 +221,7 @@ struct WordAPIService: WordAPIProviding {
         return WordEntry(
             word: headword,
             phonetic: pronunciation,
+            pronunciationAudioURL: pronunciationAudioURL,
             partOfSpeech: partOfSpeech,
             definition: definition,
             exampleSentence: example,
@@ -185,6 +236,29 @@ struct WordAPIService: WordAPIProviding {
             && !entry.exampleSentence.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty
             && !(entry.synonyms ?? []).isEmpty
             && !(entry.antonyms ?? []).isEmpty
+    }
+
+    private func makePronunciationAudioURL(for audioIdentifier: String) -> URL? {
+        guard let firstCharacter = audioIdentifier.first else {
+            return nil
+        }
+
+        let subdirectory: String
+        if audioIdentifier.hasPrefix("bix") {
+            subdirectory = "bix"
+        } else if audioIdentifier.hasPrefix("gg") {
+            subdirectory = "gg"
+        } else if firstCharacter.isNumber || firstCharacter.isPunctuation {
+            subdirectory = "number"
+        } else {
+            subdirectory = String(firstCharacter).lowercased()
+        }
+
+        var components = URLComponents()
+        components.scheme = "https"
+        components.host = "media.merriam-webster.com"
+        components.path = "/audio/prons/en/us/mp3/\(subdirectory)/\(audioIdentifier).mp3"
+        return components.url
     }
 
     private func request<Response: Decodable>(
@@ -412,10 +486,16 @@ private extension WordAPIService {
 
     struct Pronunciation: Decodable {
         let written: String?
+        let sound: PronunciationSound?
 
         enum CodingKeys: String, CodingKey {
             case written = "mw"
+            case sound
         }
+    }
+
+    struct PronunciationSound: Decodable {
+        let audio: String?
     }
 
     enum ThesaurusLookupResult: Decodable {

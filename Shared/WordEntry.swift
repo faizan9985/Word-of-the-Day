@@ -7,6 +7,7 @@ struct WordEntry: Codable, Identifiable, Sendable, Equatable {
     let id: UUID
     let word: String
     let phonetic: String
+    let pronunciationAudioURL: URL?
     let partOfSpeech: String
     let definition: String
     let exampleSentence: String
@@ -18,6 +19,7 @@ struct WordEntry: Codable, Identifiable, Sendable, Equatable {
         id: UUID = UUID(),
         word: String,
         phonetic: String,
+        pronunciationAudioURL: URL? = nil,
         partOfSpeech: String,
         definition: String,
         exampleSentence: String,
@@ -28,6 +30,7 @@ struct WordEntry: Codable, Identifiable, Sendable, Equatable {
         self.id = id
         self.word = word
         self.phonetic = phonetic
+        self.pronunciationAudioURL = pronunciationAudioURL
         self.partOfSpeech = partOfSpeech
         self.definition = definition
         self.exampleSentence = exampleSentence
