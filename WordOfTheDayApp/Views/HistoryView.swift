@@ -5,23 +5,22 @@ import SwiftUI
 
 struct HistoryView: View {
     @Environment(\.modelContext) private var modelContext
-    @Query(sort: \SavedWord.date, order: .reverse) private var words: [SavedWord]
-    @State private var bookmarksOnly = false
-
-    private var visibleWords: [SavedWord] {
-        bookmarksOnly ? words.filter(\.isBookmarked) : words
-    }
+    @Query(
+        filter: #Predicate<SavedWord> { $0.isBookmarked },
+        sort: \SavedWord.date,
+        order: .reverse
+    ) private var words: [SavedWord]
 
     var body: some View {
         List {
-            if visibleWords.isEmpty {
+            if words.isEmpty {
                 ContentUnavailableView(
-                    bookmarksOnly ? "No Bookmarks" : "No History Yet",
-                    systemImage: bookmarksOnly ? "bookmark" : "clock.arrow.circlepath",
-                    description: Text("Words you learn will appear here.")
+                    "No Saved Words",
+                    systemImage: "bookmark",
+                    description: Text("Words you bookmark will appear here.")
                 )
             } else {
-                ForEach(visibleWords) { savedWord in
+                ForEach(words) { savedWord in
                     VStack(alignment: .leading, spacing: 5) {
                         HStack {
                             Text(savedWord.word)
@@ -31,15 +30,12 @@ struct HistoryView: View {
                                 .foregroundStyle(.secondary)
                             Spacer()
                             Button {
-                                WordHistoryStore.toggleBookmark(
-                                    for: savedWord,
-                                    in: modelContext
-                                )
+                                WordHistoryStore.removeBookmark(savedWord, in: modelContext)
                             } label: {
-                                Image(systemName: savedWord.isBookmarked ? "bookmark.fill" : "bookmark")
+                                Image(systemName: "bookmark.fill")
                             }
                             .buttonStyle(.plain)
-                            .accessibilityLabel(savedWord.isBookmarked ? "Remove bookmark" : "Bookmark")
+                            .accessibilityLabel("Remove bookmark")
                         }
                         Text(savedWord.definitionText)
                             .font(.subheadline)
@@ -51,22 +47,12 @@ struct HistoryView: View {
                 .onDelete(perform: delete)
             }
         }
-        .navigationTitle("Vocabulary")
-        .toolbar {
-            ToolbarItem(placement: .topBarTrailing) {
-                Button {
-                    bookmarksOnly.toggle()
-                } label: {
-                    Image(systemName: bookmarksOnly ? "bookmark.fill" : "bookmark")
-                }
-                .accessibilityLabel(bookmarksOnly ? "Show all words" : "Show bookmarks only")
-            }
-        }
+        .navigationTitle("Saved Words")
     }
 
     private func delete(at offsets: IndexSet) {
         for index in offsets {
-            modelContext.delete(visibleWords[index])
+            modelContext.delete(words[index])
         }
         try? modelContext.save()
     }

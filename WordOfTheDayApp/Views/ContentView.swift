@@ -5,7 +5,7 @@ import SwiftUI
 
 struct ContentView: View {
     @Environment(\.modelContext) private var modelContext
-    @Query private var savedWords: [SavedWord]
+    @Query(filter: #Predicate<SavedWord> { $0.isBookmarked }) private var savedWords: [SavedWord]
     @StateObject private var viewModel = WordViewModel()
     @StateObject private var speechService = SpeechService()
 
@@ -55,7 +55,7 @@ struct ContentView: View {
                     NavigationLink(destination: HistoryView()) {
                         Image(systemName: "books.vertical")
                     }
-                    .accessibilityLabel("Vocabulary history")
+                    .accessibilityLabel("Saved words")
 
                     NavigationLink(destination: SettingsView()) {
                         Image(systemName: "gearshape")
@@ -67,11 +67,8 @@ struct ContentView: View {
                 await viewModel.refresh()
             }
             .task {
-                WordHistoryStore.save(viewModel.entry, in: modelContext)
+                WordHistoryStore.migrateToBookmarkOnlyHistoryIfNeeded(in: modelContext)
                 await viewModel.refresh()
-            }
-            .onChange(of: viewModel.entry) { _, entry in
-                WordHistoryStore.save(entry, in: modelContext)
             }
             .overlay {
                 if viewModel.isLoading {
@@ -85,11 +82,9 @@ struct ContentView: View {
 
     private func toggleCurrentBookmark() {
         if let savedCurrentWord {
-            WordHistoryStore.toggleBookmark(for: savedCurrentWord, in: modelContext)
+            WordHistoryStore.removeBookmark(savedCurrentWord, in: modelContext)
         } else {
-            let savedWord = SavedWord(entry: viewModel.entry, isBookmarked: true)
-            modelContext.insert(savedWord)
-            try? modelContext.save()
+            WordHistoryStore.bookmark(viewModel.entry, in: modelContext)
         }
     }
 

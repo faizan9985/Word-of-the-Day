@@ -5,28 +5,42 @@ import SwiftData
 
 @MainActor
 enum WordHistoryStore {
-    static func save(_ entry: WordEntry, in context: ModelContext) {
-        let id = entry.id
+    private static let bookmarkOnlyMigrationKey = "didMigrateToBookmarkOnlyHistoryV1"
+
+    static func migrateToBookmarkOnlyHistoryIfNeeded(in context: ModelContext) {
+        guard !UserDefaults.standard.bool(forKey: bookmarkOnlyMigrationKey) else { return }
+
         let descriptor = FetchDescriptor<SavedWord>(
-            predicate: #Predicate { $0.id == id }
+            predicate: #Predicate { !$0.isBookmarked }
         )
 
-        if let saved = try? context.fetch(descriptor).first {
-            saved.word = entry.word
-            saved.phonetic = entry.phonetic
-            saved.partOfSpeech = entry.partOfSpeech
-            saved.definitionText = entry.definition
-            saved.exampleSentence = entry.exampleSentence
-            saved.date = entry.date
+        do {
+            for savedWord in try context.fetch(descriptor) {
+                context.delete(savedWord)
+            }
+            try context.save()
+            UserDefaults.standard.set(true, forKey: bookmarkOnlyMigrationKey)
+        } catch {
+            return
+        }
+    }
+
+    static func bookmark(_ entry: WordEntry, in context: ModelContext) {
+        let existingWord = (try? context.fetch(FetchDescriptor<SavedWord>()))?.first {
+            $0.id == entry.id || $0.word.caseInsensitiveCompare(entry.word) == .orderedSame
+        }
+
+        if let existingWord {
+            existingWord.isBookmarked = true
         } else {
-            context.insert(SavedWord(entry: entry))
+            context.insert(SavedWord(entry: entry, isBookmarked: true))
         }
 
         try? context.save()
     }
 
-    static func toggleBookmark(for savedWord: SavedWord, in context: ModelContext) {
-        savedWord.isBookmarked.toggle()
+    static func removeBookmark(_ savedWord: SavedWord, in context: ModelContext) {
+        context.delete(savedWord)
         try? context.save()
     }
 }
