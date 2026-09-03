@@ -25,7 +25,7 @@ enum WordHistoryStore {
         }
     }
 
-    static func bookmark(_ entry: WordEntry, in context: ModelContext) {
+    static func favorite(_ entry: WordEntry, in context: ModelContext) {
         let existingWord = (try? context.fetch(FetchDescriptor<SavedWord>()))?.first {
             $0.id == entry.id || $0.word.caseInsensitiveCompare(entry.word) == .orderedSame
         }
@@ -39,8 +39,37 @@ enum WordHistoryStore {
         try? context.save()
     }
 
-    static func removeBookmark(_ savedWord: SavedWord, in context: ModelContext) {
+    static func removeFavorite(_ savedWord: SavedWord, in context: ModelContext) {
         context.delete(savedWord)
         try? context.save()
+    }
+}
+
+@MainActor
+enum ArchiveStore {
+    private static let maximumEntryCount = 30
+
+    static func record(_ entry: WordEntry, in context: ModelContext) {
+        let descriptor = FetchDescriptor<ArchivedWord>(
+            sortBy: [SortDescriptor(\ArchivedWord.date, order: .reverse)]
+        )
+
+        do {
+            let archivedWords = try context.fetch(descriptor)
+            let calendar = Calendar.current
+            guard !archivedWords.contains(where: {
+                calendar.isDate($0.date, inSameDayAs: entry.date)
+            }) else { return }
+
+            context.insert(ArchivedWord(entry: entry))
+
+            let wordsToPrune = archivedWords.dropFirst(maximumEntryCount - 1)
+            for archivedWord in wordsToPrune {
+                context.delete(archivedWord)
+            }
+            try context.save()
+        } catch {
+            return
+        }
     }
 }

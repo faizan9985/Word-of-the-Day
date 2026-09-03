@@ -39,3 +39,45 @@ final class SavedWord {
         )
     }
 }
+
+@Model
+final class ArchivedWord {
+    @Attribute(.unique) var id: UUID
+    var word: String
+    var phonetic: String
+    var pronunciationAudioURL: URL?
+    var partOfSpeech: String
+    var definitionText: String
+    var exampleSentence: String
+    var synonyms: [String]?
+    var antonyms: [String]?
+    var date: Date
+
+    init(entry: WordEntry) {
+        self.id = entry.id
+        self.word = entry.word
+        self.phonetic = entry.phonetic
+        self.pronunciationAudioURL = entry.pronunciationAudioURL
+        self.partOfSpeech = entry.partOfSpeech
+        self.definitionText = entry.definition
+        self.exampleSentence = entry.exampleSentence
+        self.synonyms = entry.synonyms
+        self.antonyms = entry.antonyms
+        self.date = entry.date
+    }
+
+    var wordEntry: WordEntry {
+        WordEntry(
+            id: id,
+            word: word,
+            phonetic: phonetic,
+            pronunciationAudioURL: pronunciationAudioURL,
+            partOfSpeech: partOfSpeech,
+            definition: definitionText,
+            exampleSentence: exampleSentence,
+            synonyms: synonyms,
+            antonyms: antonyms,
+            date: date
+        )
+    }
+}

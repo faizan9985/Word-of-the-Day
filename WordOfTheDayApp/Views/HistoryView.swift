@@ -3,162 +3,260 @@
 import SwiftData
 import SwiftUI
 
-struct HistoryView: View {
-    @Environment(\.modelContext) private var modelContext
+struct ArchiveView: View {
+    @Environment(\.colorScheme) private var colorScheme
+    @Query(sort: \ArchivedWord.date, order: .reverse) private var archivedWords: [ArchivedWord]
+    @Query(filter: #Predicate<SavedWord> { $0.isBookmarked }) private var favorites: [SavedWord]
+    @State private var searchText = ""
+
+    private var filteredWords: [ArchivedWord] {
+        guard !searchText.isEmpty else { return archivedWords }
+        return archivedWords.filter {
+            $0.word.localizedCaseInsensitiveContains(searchText) ||
+            $0.definitionText.localizedCaseInsensitiveContains(searchText)
+        }
+    }
+
+    var body: some View {
+        WordCollectionScreen(title: "Archive", searchText: $searchText) {
+            if filteredWords.isEmpty {
+                CollectionEmptyState(
+                    symbol: searchText.isEmpty ? "archivebox" : "magnifyingglass",
+                    title: searchText.isEmpty ? "Archive Is Empty" : "No Results",
+                    message: searchText.isEmpty
+                        ? "Daily words you see will collect here for 30 days."
+                        : "Try searching for another word or meaning."
+                )
+            } else {
+                LazyVStack(spacing: 0) {
+                    ForEach(filteredWords) { archivedWord in
+                        NavigationLink {
+                            WordDetailView(entry: archivedWord.wordEntry)
+                        } label: {
+                            WordCollectionRow(
+                                entry: archivedWord.wordEntry,
+                                isFavorite: isFavorite(archivedWord.wordEntry)
+                            )
+                        }
+                        .buttonStyle(.plain)
+                        DictionaryRule()
+                    }
+                }
+            }
+        }
+        .background(AppPalette.paper(colorScheme).ignoresSafeArea())
+    }
+
+    private func isFavorite(_ entry: WordEntry) -> Bool {
+        favorites.contains {
+            $0.id == entry.id || $0.word.caseInsensitiveCompare(entry.word) == .orderedSame
+        }
+    }
+}
+
+struct FavoritesView: View {
     @Environment(\.colorScheme) private var colorScheme
     @Query(
         filter: #Predicate<SavedWord> { $0.isBookmarked },
         sort: \SavedWord.date,
         order: .reverse
-    ) private var words: [SavedWord]
+    ) private var favorites: [SavedWord]
+    @Query(sort: \ArchivedWord.date, order: .reverse) private var archivedWords: [ArchivedWord]
 
     var body: some View {
-        List {
-            if words.isEmpty {
-                emptyState
-                    .listRowBackground(Color.clear)
-                    .listRowSeparator(.hidden)
+        WordCollectionScreen(title: "Favorites") {
+            if favorites.isEmpty {
+                CollectionEmptyState(
+                    symbol: "heart",
+                    title: "No Favorites Yet",
+                    message: "Words you favorite will appear here."
+                )
             } else {
-                Section {
-                    ForEach(words) { savedWord in
-                        savedWordRow(savedWord)
-                            .listRowInsets(
-                                EdgeInsets(top: 16, leading: 24, bottom: 16, trailing: 16)
-                            )
-                            .listRowBackground(HistoryPalette.paper(colorScheme))
-                            .listRowSeparatorTint(HistoryPalette.rule(colorScheme))
+                LazyVStack(spacing: 0) {
+                    ForEach(favorites) { favorite in
+                        NavigationLink {
+                            WordDetailView(entry: detailEntry(for: favorite))
+                        } label: {
+                            WordCollectionRow(entry: favorite.wordEntry, isFavorite: true)
+                        }
+                        .buttonStyle(.plain)
+                        DictionaryRule()
                     }
-                    .onDelete(perform: delete)
-                } header: {
-                    HistorySectionLabel("Saved Dictionary")
-                        .padding(.leading, 8)
                 }
             }
         }
-        .listStyle(.plain)
-        .scrollContentBackground(.hidden)
-        .background(HistoryPalette.paper(colorScheme).ignoresSafeArea())
-        .navigationTitle("Saved Words")
-        .navigationBarTitleDisplayMode(.inline)
-        .tint(HistoryPalette.accent(colorScheme))
+        .background(AppPalette.paper(colorScheme).ignoresSafeArea())
     }
 
-    private func savedWordRow(_ savedWord: SavedWord) -> some View {
-        VStack(alignment: .leading, spacing: 8) {
-            HStack(alignment: .firstTextBaseline, spacing: 10) {
-                Text(savedWord.word)
-                    .font(.system(.title3, design: .serif, weight: .semibold))
-                    .foregroundStyle(HistoryPalette.ink(colorScheme))
-                    .fixedSize(horizontal: false, vertical: true)
-
-                Spacer(minLength: 4)
-
-                Button {
-                    WordHistoryStore.removeBookmark(savedWord, in: modelContext)
-                } label: {
-                    Image(systemName: "bookmark.fill")
-                        .foregroundStyle(HistoryPalette.accent(colorScheme))
-                        .frame(width: 44, height: 44)
-                        .contentShape(Rectangle())
-                }
-                .buttonStyle(.plain)
-                .accessibilityLabel("Remove bookmark for \(savedWord.word)")
-            }
-
-            ViewThatFits(in: .horizontal) {
-                HStack(spacing: 6) {
-                    Text(savedWord.partOfSpeech)
-                        .italic()
-                    Text("·")
-                    Text(savedWord.phonetic)
-                }
-
-                VStack(alignment: .leading, spacing: 2) {
-                    Text(savedWord.partOfSpeech).italic()
-                    Text(savedWord.phonetic)
-                }
-            }
-            .font(.system(.caption, design: .serif))
-            .foregroundStyle(HistoryPalette.secondaryInk(colorScheme))
-
-            Text(savedWord.definitionText)
-                .font(.system(.subheadline, design: .serif))
-                .foregroundStyle(HistoryPalette.secondaryInk(colorScheme))
-                .lineSpacing(3)
-                .lineLimit(3)
-        }
-        .accessibilityElement(children: .contain)
-    }
-
-    private var emptyState: some View {
-        VStack(spacing: 14) {
-            Image(systemName: "bookmark")
-                .font(.title2)
-                .foregroundStyle(HistoryPalette.accent(colorScheme))
-
-            Text("No Saved Words")
-                .font(.system(.title3, design: .serif, weight: .semibold))
-                .foregroundStyle(HistoryPalette.ink(colorScheme))
-
-            Text("Words you bookmark will appear here.")
-                .font(.subheadline)
-                .foregroundStyle(HistoryPalette.secondaryInk(colorScheme))
-                .multilineTextAlignment(.center)
-        }
-        .frame(maxWidth: .infinity, minHeight: 320)
-        .accessibilityElement(children: .combine)
-    }
-
-    private func delete(at offsets: IndexSet) {
-        for index in offsets {
-            modelContext.delete(words[index])
-        }
-        try? modelContext.save()
+    private func detailEntry(for favorite: SavedWord) -> WordEntry {
+        archivedWords.first {
+            $0.id == favorite.id || $0.word.caseInsensitiveCompare(favorite.word) == .orderedSame
+        }?.wordEntry ?? favorite.wordEntry
     }
 }
 
-private struct HistorySectionLabel: View {
+private struct WordCollectionScreen<Content: View>: View {
     @Environment(\.colorScheme) private var colorScheme
     let title: String
+    private let searchText: Binding<String>?
+    @ViewBuilder let content: Content
 
-    init(_ title: String) {
+    init(
+        title: String,
+        searchText: Binding<String>? = nil,
+        @ViewBuilder content: () -> Content
+    ) {
         self.title = title
+        self.searchText = searchText
+        self.content = content()
     }
 
     var body: some View {
-        Text(title.uppercased())
-            .font(.caption2.weight(.semibold))
-            .tracking(1.5)
-            .foregroundStyle(HistoryPalette.accent(colorScheme))
+        ScrollView {
+            VStack(alignment: .leading, spacing: 22) {
+                Text(title)
+                    .font(.system(size: 38, weight: .bold, design: .rounded))
+                    .foregroundStyle(AppPalette.ink(colorScheme))
+
+                if let searchText {
+                    HStack(spacing: 10) {
+                        Image(systemName: "magnifyingglass")
+                            .foregroundStyle(AppPalette.secondaryInk(colorScheme))
+                        TextField("Search words and meanings", text: searchText)
+                            .textInputAutocapitalization(.never)
+                            .autocorrectionDisabled()
+                    }
+                    .padding(.horizontal, 14)
+                    .frame(height: 46)
+                    .background(.thinMaterial, in: RoundedRectangle(cornerRadius: 14))
+                    .overlay {
+                        RoundedRectangle(cornerRadius: 14)
+                            .stroke(AppPalette.rule(colorScheme), lineWidth: 0.5)
+                    }
+                }
+
+                content
+            }
+            .padding(.horizontal, 22)
+            .padding(.top, 24)
+            .padding(.bottom, 30)
+        }
+        .background(AppPalette.paper(colorScheme).ignoresSafeArea())
+        .navigationBarHidden(true)
+        .tint(AppPalette.accent(colorScheme))
     }
 }
 
-private enum HistoryPalette {
-    static func paper(_ scheme: ColorScheme) -> Color {
-        scheme == .dark
-            ? Color(red: 0.055, green: 0.052, blue: 0.048)
-            : Color(red: 0.976, green: 0.969, blue: 0.949)
+private struct WordCollectionRow: View {
+    @Environment(\.colorScheme) private var colorScheme
+    let entry: WordEntry
+    let isFavorite: Bool
+
+    var body: some View {
+        HStack(spacing: 12) {
+            VStack(alignment: .leading, spacing: 6) {
+                HStack(spacing: 7) {
+                    Text(entry.displayWord)
+                        .font(.system(.title3, design: .serif, weight: .semibold))
+                        .foregroundStyle(AppPalette.ink(colorScheme))
+                    if isFavorite {
+                        Image(systemName: "heart.fill")
+                            .font(.caption2)
+                            .foregroundStyle(AppPalette.accent(colorScheme))
+                    }
+                }
+                Text(entry.definition)
+                    .font(.subheadline)
+                    .foregroundStyle(AppPalette.secondaryInk(colorScheme))
+                    .lineLimit(2)
+            }
+            Spacer(minLength: 8)
+            Text(entry.date, format: .dateTime.month(.abbreviated).day())
+                .font(.caption)
+                .foregroundStyle(AppPalette.secondaryInk(colorScheme))
+            Image(systemName: "chevron.right")
+                .font(.caption.weight(.semibold))
+                .foregroundStyle(AppPalette.secondaryInk(colorScheme))
+        }
+        .padding(.vertical, 17)
+        .contentShape(Rectangle())
+    }
+}
+
+private struct CollectionEmptyState: View {
+    @Environment(\.colorScheme) private var colorScheme
+    let symbol: String
+    let title: String
+    let message: String
+    var body: some View {
+        VStack(spacing: 13) {
+            Image(systemName: symbol).font(.title2)
+                .foregroundStyle(AppPalette.accent(colorScheme))
+            Text(title).font(.system(.title3, design: .serif, weight: .semibold))
+                .foregroundStyle(AppPalette.ink(colorScheme))
+            Text(message).font(.subheadline)
+                .foregroundStyle(AppPalette.secondaryInk(colorScheme))
+                .multilineTextAlignment(.center)
+        }
+        .frame(maxWidth: .infinity, minHeight: 340)
+    }
+}
+
+struct WordDetailView: View {
+    @Environment(\.modelContext) private var modelContext
+    @Environment(\.colorScheme) private var colorScheme
+    @Query(filter: #Predicate<SavedWord> { $0.isBookmarked }) private var favorites: [SavedWord]
+    let entry: WordEntry
+    @State private var isShowingShareSheet = false
+
+    private var favorite: SavedWord? {
+        favorites.first {
+            $0.id == entry.id || $0.word.caseInsensitiveCompare(entry.word) == .orderedSame
+        }
     }
 
-    static func ink(_ scheme: ColorScheme) -> Color {
-        scheme == .dark
-            ? Color(red: 0.94, green: 0.92, blue: 0.87)
-            : Color(red: 0.075, green: 0.07, blue: 0.065)
+    var body: some View {
+        ScrollView {
+            LazyVStack(alignment: .leading, spacing: 0) {
+                HStack {
+                    Text(entry.date, format: .dateTime.month(.wide).day().year())
+                        .font(.caption.weight(.medium))
+                        .textCase(.uppercase)
+                        .tracking(0.8)
+                        .foregroundStyle(AppPalette.secondaryInk(colorScheme))
+                    Spacer()
+                    FavoriteButton(isFavorite: favorite != nil, action: toggleFavorite)
+                    Button { isShowingShareSheet = true } label: {
+                        Image(systemName: "square.and.arrow.up")
+                            .frame(width: 36, height: 36)
+                            .background(.thinMaterial, in: Circle())
+                    }
+                    .buttonStyle(.plain)
+                    .accessibilityLabel("Share \(entry.displayWord)")
+                }
+                DictionaryRule(accented: true)
+                    .padding(.top, 16)
+                DictionaryWordContent(entry: entry)
+            }
+            .padding(.horizontal, 24)
+            .padding(.bottom, 28)
+        }
+        .background(AppPalette.paper(colorScheme).ignoresSafeArea())
+        .navigationTitle(entry.displayWord)
+        .navigationBarTitleDisplayMode(.inline)
+        .tint(AppPalette.accent(colorScheme))
+        .sheet(isPresented: $isShowingShareSheet) {
+            ShareWordSheet(entry: entry)
+                .presentationDetents([.medium, .large])
+                .presentationDragIndicator(.visible)
+        }
     }
 
-    static func secondaryInk(_ scheme: ColorScheme) -> Color {
-        scheme == .dark
-            ? Color(red: 0.66, green: 0.64, blue: 0.60)
-            : Color(red: 0.31, green: 0.30, blue: 0.28)
-    }
-
-    static func rule(_ scheme: ColorScheme) -> Color {
-        scheme == .dark ? Color.white.opacity(0.18) : Color.black.opacity(0.16)
-    }
-
-    static func accent(_ scheme: ColorScheme) -> Color {
-        scheme == .dark
-            ? Color(red: 0.72, green: 0.52, blue: 0.31)
-            : Color(red: 0.52, green: 0.34, blue: 0.17)
+    private func toggleFavorite() {
+        if let favorite {
+            WordHistoryStore.removeFavorite(favorite, in: modelContext)
+        } else {
+            WordHistoryStore.favorite(entry, in: modelContext)
+        }
     }
 }

@@ -16,6 +16,6 @@ struct WordOfTheDayApp: App {
             ContentView()
                 .preferredColorScheme(preferredColorScheme)
         }
-        .modelContainer(for: SavedWord.self)
+        .modelContainer(for: [SavedWord.self, ArchivedWord.self])
     }
 }
