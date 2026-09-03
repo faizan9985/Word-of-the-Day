@@ -5,9 +5,11 @@ import SwiftUI
 
 struct ContentView: View {
     @Environment(\.modelContext) private var modelContext
+    @Environment(\.colorScheme) private var colorScheme
     @Query(filter: #Predicate<SavedWord> { $0.isBookmarked }) private var savedWords: [SavedWord]
     @StateObject private var viewModel = WordViewModel()
     @StateObject private var speechService = SpeechService()
+    @ScaledMetric(relativeTo: .largeTitle) private var wordSize: CGFloat = 48
 
     private var savedCurrentWord: SavedWord? {
         savedWords.first { $0.id == viewModel.entry.id }
@@ -16,47 +18,54 @@ struct ContentView: View {
     var body: some View {
         NavigationStack {
             ScrollView {
-                LazyVStack(alignment: .leading, spacing: 18) {
-                    heroCard
-                    informationCard(title: "Definition", systemImage: "text.quote", text: viewModel.entry.definition)
-                    informationCard(
-                        title: "In a sentence",
-                        systemImage: "quote.opening",
-                        text: "“\(viewModel.entry.exampleSentence)”",
-                        italic: true
-                    )
-                    wordListCard(
+                LazyVStack(alignment: .leading, spacing: 0) {
+                    masthead
+                        .padding(.bottom, 24)
+                    EditorialRule(accented: true)
+                    wordHeading
+                        .padding(.vertical, 30)
+                    EditorialRule()
+                    definitionSection
+                    EditorialRule()
+                    exampleSection
+                    EditorialRule()
+                    wordListSection(
                         title: "Synonyms",
-                        systemImage: "arrow.triangle.branch",
                         words: viewModel.entry.synonyms,
                         emptyMessage: "No synonyms available."
                     )
-                    wordListCard(
+                    EditorialRule()
+                    wordListSection(
                         title: "Antonyms",
-                        systemImage: "arrow.left.arrow.right",
                         words: viewModel.entry.antonyms,
                         emptyMessage: "No antonyms available."
                     )
 
                     if let errorMessage = viewModel.errorMessage {
-                        errorBanner(errorMessage)
+                        EditorialRule()
+                        errorMessageView(errorMessage)
                     }
                 }
-                .padding(.horizontal, 20)
-                .padding(.top, 8)
-                .padding(.bottom, 32)
+                .padding(.horizontal, 24)
+                .padding(.top, 14)
+                .padding(.bottom, 48)
+                .frame(maxWidth: 720, alignment: .leading)
+                .frame(maxWidth: .infinity)
             }
-            .background(pageBackground)
-            .navigationTitle("Today")
+            .background(DictionaryPalette.paper(colorScheme).ignoresSafeArea())
             .toolbar {
                 ToolbarItemGroup(placement: .topBarTrailing) {
                     NavigationLink(destination: HistoryView()) {
                         Image(systemName: "books.vertical")
+                            .frame(width: 44, height: 44)
+                            .contentShape(Rectangle())
                     }
                     .accessibilityLabel("Saved words")
 
                     NavigationLink(destination: SettingsView()) {
                         Image(systemName: "gearshape")
+                            .frame(width: 44, height: 44)
+                            .contentShape(Rectangle())
                     }
                     .accessibilityLabel("Settings")
                 }
@@ -70,175 +79,151 @@ struct ContentView: View {
                 if viewModel.isLoading {
                     ProgressView("Finding today’s word…")
                         .font(.footnote.weight(.medium))
+                        .foregroundStyle(DictionaryPalette.ink(colorScheme))
                         .padding(.horizontal, 18)
                         .padding(.vertical, 14)
-                        .background(.regularMaterial, in: Capsule())
-                        .shadow(color: .black.opacity(0.12), radius: 16, y: 8)
+                        .background(DictionaryPalette.paper(colorScheme))
+                        .overlay {
+                            RoundedRectangle(cornerRadius: 8, style: .continuous)
+                                .stroke(DictionaryPalette.rule(colorScheme), lineWidth: 0.5)
+                        }
                 }
             }
         }
-        .tint(.indigo)
+        .tint(DictionaryPalette.ink(colorScheme))
     }
 
-    private var pageBackground: some View {
-        LinearGradient(
-            colors: [
-                Color.indigo.opacity(0.10),
-                Color(.systemGroupedBackground),
-                Color(.systemGroupedBackground)
-            ],
-            startPoint: .topLeading,
-            endPoint: .center
-        )
-        .ignoresSafeArea()
-    }
-
-    private var heroCard: some View {
-        VStack(alignment: .leading, spacing: 20) {
-            HStack {
-                Label {
-                    Text(viewModel.entry.date, format: .dateTime.weekday(.wide).month(.wide).day())
-                } icon: {
-                    Image(systemName: "calendar")
-                }
-                .font(.caption.weight(.semibold))
-                .foregroundStyle(.secondary)
+    private var masthead: some View {
+        VStack(alignment: .leading, spacing: 5) {
+            HStack(alignment: .center) {
+                EditorialSectionLabel("Word of the Day")
 
                 Spacer()
 
-                Image(systemName: "character.book.closed.fill")
-                    .font(.title3)
-                    .foregroundStyle(.indigo)
-                    .accessibilityHidden(true)
+                Button(action: toggleCurrentBookmark) {
+                    Image(systemName: savedCurrentWord == nil ? "bookmark" : "bookmark.fill")
+                        .font(.body.weight(.medium))
+                        .foregroundStyle(
+                            savedCurrentWord == nil
+                                ? DictionaryPalette.ink(colorScheme)
+                                : DictionaryPalette.accent(colorScheme)
+                        )
+                        .frame(width: 44, height: 44)
+                        .contentShape(Rectangle())
+                }
+                .buttonStyle(.plain)
+                .accessibilityLabel(savedCurrentWord == nil ? "Bookmark word" : "Remove bookmark")
+                .accessibilityValue(savedCurrentWord == nil ? "Not bookmarked" : "Bookmarked")
             }
 
-            VStack(alignment: .leading, spacing: 10) {
+            Text(viewModel.entry.date, format: .dateTime.month(.wide).day().year())
+                .font(.caption.weight(.medium))
+                .textCase(.uppercase)
+                .tracking(0.8)
+                .foregroundStyle(DictionaryPalette.secondaryInk(colorScheme))
+        }
+    }
+
+    private var wordHeading: some View {
+        VStack(alignment: .leading, spacing: 10) {
+            HStack(alignment: .firstTextBaseline, spacing: 8) {
                 Text(viewModel.entry.word)
-                    .font(.system(.largeTitle, design: .serif, weight: .bold))
-                    .minimumScaleFactor(0.72)
-                    .lineLimit(2)
+                    .font(.system(size: wordSize, weight: .semibold, design: .serif))
+                    .foregroundStyle(DictionaryPalette.ink(colorScheme))
+                    .fixedSize(horizontal: false, vertical: true)
                     .accessibilityAddTraits(.isHeader)
 
-                HStack(spacing: 10) {
-                    Text(viewModel.entry.phonetic)
-                        .foregroundStyle(.secondary)
+                Spacer(minLength: 4)
 
-                    Text(viewModel.entry.partOfSpeech)
-                        .font(.caption.weight(.semibold))
-                        .padding(.horizontal, 10)
-                        .padding(.vertical, 5)
-                        .foregroundStyle(.indigo)
-                        .background(Color.indigo.opacity(0.12), in: Capsule())
-                }
-            }
-
-            Divider()
-
-            HStack(spacing: 12) {
                 Button {
                     speechService.pronounce(audioURL: viewModel.entry.pronunciationAudioURL)
                 } label: {
-                    Label("Listen", systemImage: "speaker.wave.2.fill")
-                        .frame(maxWidth: .infinity)
+                    Image(systemName: "speaker.wave.2")
+                        .font(.title3)
+                        .foregroundStyle(DictionaryPalette.accent(colorScheme))
+                        .frame(width: 44, height: 44)
+                        .contentShape(Rectangle())
                 }
-                .buttonStyle(.borderedProminent)
+                .buttonStyle(.plain)
                 .disabled(viewModel.entry.pronunciationAudioURL == nil)
                 .accessibilityLabel("Pronounce \(viewModel.entry.word)")
-
-                Button(action: toggleCurrentBookmark) {
-                    Label(
-                        savedCurrentWord == nil ? "Save" : "Saved",
-                        systemImage: savedCurrentWord == nil ? "bookmark" : "bookmark.fill"
-                    )
-                    .frame(maxWidth: .infinity)
-                }
-                .buttonStyle(.bordered)
-                .accessibilityLabel(savedCurrentWord == nil ? "Bookmark word" : "Remove bookmark")
             }
-            .controlSize(.large)
+
+            Text(viewModel.entry.phonetic)
+                .font(.subheadline)
+                .foregroundStyle(DictionaryPalette.secondaryInk(colorScheme))
+                .fixedSize(horizontal: false, vertical: true)
+
+            Text(viewModel.entry.partOfSpeech)
+                .font(.system(.body, design: .serif).italic())
+                .foregroundStyle(DictionaryPalette.accent(colorScheme))
+                .fixedSize(horizontal: false, vertical: true)
         }
-        .padding(22)
-        .frame(maxWidth: .infinity, alignment: .leading)
-        .background {
-            RoundedRectangle(cornerRadius: 28, style: .continuous)
-                .fill(Color(.secondarySystemGroupedBackground))
-                .overlay {
-                    RoundedRectangle(cornerRadius: 28, style: .continuous)
-                        .fill(
-                            LinearGradient(
-                                colors: [.indigo.opacity(0.14), .clear],
-                                startPoint: .topLeading,
-                                endPoint: .bottomTrailing
-                            )
-                        )
-                }
-        }
-        .overlay {
-            RoundedRectangle(cornerRadius: 28, style: .continuous)
-                .stroke(Color.indigo.opacity(0.18), lineWidth: 1)
-        }
-        .shadow(color: Color.indigo.opacity(0.08), radius: 20, y: 10)
     }
 
-    private func informationCard(
-        title: String,
-        systemImage: String,
-        text: String,
-        italic: Bool = false
-    ) -> some View {
-        VStack(alignment: .leading, spacing: 12) {
-            sectionHeader(title, systemImage: systemImage)
-            Text(text)
-                .font(italic ? .body.italic() : .body)
-                .lineSpacing(5)
+    private var definitionSection: some View {
+        VStack(alignment: .leading, spacing: 15) {
+            EditorialSectionLabel("Definition")
+
+            HStack(alignment: .firstTextBaseline, spacing: 14) {
+                Text("1")
+                    .font(.system(.body, design: .serif).weight(.semibold))
+                    .foregroundStyle(DictionaryPalette.accent(colorScheme))
+
+                Text(viewModel.entry.definition)
+                    .font(.system(.title3, design: .serif))
+                    .foregroundStyle(DictionaryPalette.ink(colorScheme))
+                    .lineSpacing(7)
+                    .fixedSize(horizontal: false, vertical: true)
+                    .textSelection(.enabled)
+            }
+            .accessibilityElement(children: .combine)
+        }
+        .padding(.vertical, 28)
+    }
+
+    private var exampleSection: some View {
+        VStack(alignment: .leading, spacing: 15) {
+            EditorialSectionLabel("Example")
+
+            Text(viewModel.entry.exampleSentence)
+                .font(.system(.body, design: .serif).italic())
+                .foregroundStyle(DictionaryPalette.secondaryInk(colorScheme))
+                .lineSpacing(6)
+                .padding(.leading, 30)
+                .fixedSize(horizontal: false, vertical: true)
                 .textSelection(.enabled)
         }
-        .contentCard()
+        .padding(.vertical, 28)
     }
 
-    private func wordListCard(
-        title: String,
-        systemImage: String,
-        words: [String]?,
-        emptyMessage: String
-    ) -> some View {
+    private func wordListSection(title: String, words: [String]?, emptyMessage: String) -> some View {
         let words = words?.filter { !$0.trimmingCharacters(in: .whitespaces).isEmpty } ?? []
 
-        return VStack(alignment: .leading, spacing: 14) {
-            sectionHeader(title, systemImage: systemImage)
+        return VStack(alignment: .leading, spacing: 16) {
+            EditorialSectionLabel(title)
 
             if words.isEmpty {
                 Text(emptyMessage)
-                    .font(.subheadline)
-                    .foregroundStyle(.secondary)
+                    .font(.system(.body, design: .serif).italic())
+                    .foregroundStyle(DictionaryPalette.secondaryInk(colorScheme))
             } else {
-                TagFlowLayout(spacing: 8) {
-                    ForEach(words, id: \.self) { word in
-                        Text(word)
-                            .font(.subheadline.weight(.medium))
-                            .padding(.horizontal, 12)
-                            .padding(.vertical, 8)
-                            .background(Color.indigo.opacity(0.10), in: Capsule())
-                    }
-                }
+                Text(words.joined(separator: "  ·  "))
+                    .font(.system(.body, design: .serif))
+                    .foregroundStyle(DictionaryPalette.ink(colorScheme))
+                    .lineSpacing(5)
+                    .fixedSize(horizontal: false, vertical: true)
             }
         }
-        .contentCard()
+        .padding(.vertical, 28)
     }
 
-    private func sectionHeader(_ title: String, systemImage: String) -> some View {
-        Label(title.uppercased(), systemImage: systemImage)
-            .font(.caption.weight(.bold))
-            .foregroundStyle(.indigo)
-    }
-
-    private func errorBanner(_ message: String) -> some View {
-        Label(message, systemImage: "exclamationmark.triangle.fill")
+    private func errorMessageView(_ message: String) -> some View {
+        Label(message, systemImage: "exclamationmark.triangle")
             .font(.footnote)
-            .foregroundStyle(.red)
-            .padding(14)
+            .foregroundStyle(DictionaryPalette.secondaryInk(colorScheme))
+            .padding(.vertical, 24)
             .frame(maxWidth: .infinity, alignment: .leading)
-            .background(Color.red.opacity(0.10), in: RoundedRectangle(cornerRadius: 14))
             .accessibilityLabel("Error: \(message)")
     }
 
@@ -251,67 +236,68 @@ struct ContentView: View {
     }
 }
 
-private extension View {
-    func contentCard() -> some View {
-        padding(20)
-            .frame(maxWidth: .infinity, alignment: .leading)
-            .background(
-                Color(.secondarySystemGroupedBackground),
-                in: RoundedRectangle(cornerRadius: 20, style: .continuous)
+private struct EditorialSectionLabel: View {
+    let title: String
+
+    init(_ title: String) {
+        self.title = title
+    }
+
+    var body: some View {
+        Text(title.uppercased())
+            .font(.caption2.weight(.semibold))
+            .tracking(1.6)
+            .foregroundStyle(DictionaryPalette.accent(colorScheme))
+    }
+
+    @Environment(\.colorScheme) private var colorScheme
+}
+
+private struct EditorialRule: View {
+    @Environment(\.colorScheme) private var colorScheme
+    var accented = false
+
+    var body: some View {
+        Rectangle()
+            .fill(
+                accented
+                    ? DictionaryPalette.accent(colorScheme).opacity(0.7)
+                    : DictionaryPalette.rule(colorScheme)
             )
-            .overlay {
-                RoundedRectangle(cornerRadius: 20, style: .continuous)
-                    .stroke(Color(.separator).opacity(0.45), lineWidth: 0.5)
-            }
+            .frame(height: 0.5)
+            .accessibilityHidden(true)
     }
 }
 
-private struct TagFlowLayout: Layout {
-    let spacing: CGFloat
-
-    func sizeThatFits(
-        proposal: ProposedViewSize,
-        subviews: Subviews,
-        cache: inout ()
-    ) -> CGSize {
-        let width = proposal.width ?? .infinity
-        var position = CGPoint.zero
-        var rowHeight: CGFloat = 0
-
-        for subview in subviews {
-            let size = subview.sizeThatFits(.unspecified)
-            if position.x > 0, position.x + size.width > width {
-                position.x = 0
-                position.y += rowHeight + spacing
-                rowHeight = 0
-            }
-            position.x += size.width + spacing
-            rowHeight = max(rowHeight, size.height)
-        }
-
-        return CGSize(width: width.isFinite ? width : position.x, height: position.y + rowHeight)
+private enum DictionaryPalette {
+    static func paper(_ scheme: ColorScheme) -> Color {
+        scheme == .dark
+            ? Color(red: 0.055, green: 0.052, blue: 0.048)
+            : Color(red: 0.976, green: 0.969, blue: 0.949)
     }
 
-    func placeSubviews(
-        in bounds: CGRect,
-        proposal: ProposedViewSize,
-        subviews: Subviews,
-        cache: inout ()
-    ) {
-        var position = CGPoint(x: bounds.minX, y: bounds.minY)
-        var rowHeight: CGFloat = 0
+    static func ink(_ scheme: ColorScheme) -> Color {
+        scheme == .dark
+            ? Color(red: 0.94, green: 0.92, blue: 0.87)
+            : Color(red: 0.075, green: 0.07, blue: 0.065)
+    }
 
-        for subview in subviews {
-            let size = subview.sizeThatFits(.unspecified)
-            if position.x > bounds.minX, position.x + size.width > bounds.maxX {
-                position.x = bounds.minX
-                position.y += rowHeight + spacing
-                rowHeight = 0
-            }
-            subview.place(at: position, proposal: ProposedViewSize(size))
-            position.x += size.width + spacing
-            rowHeight = max(rowHeight, size.height)
-        }
+    static func secondaryInk(_ scheme: ColorScheme) -> Color {
+        scheme == .dark
+            ? Color(red: 0.66, green: 0.64, blue: 0.60)
+            : Color(red: 0.31, green: 0.30, blue: 0.28)
+    }
+
+    static func rule(_ scheme: ColorScheme) -> Color {
+        scheme == .dark
+            ? Color.white.opacity(0.18)
+            : Color.black.opacity(0.16)
+    }
+
+    static func accent(_ scheme: ColorScheme) -> Color {
+        scheme == .dark
+            ? Color(red: 0.72, green: 0.52, blue: 0.31)
+            : Color(red: 0.52, green: 0.34, blue: 0.17)
     }
 }
 
