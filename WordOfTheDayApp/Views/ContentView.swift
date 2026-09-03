@@ -127,7 +127,7 @@ struct ContentView: View {
     private var wordHeading: some View {
         VStack(alignment: .leading, spacing: 10) {
             HStack(alignment: .firstTextBaseline, spacing: 8) {
-                Text(viewModel.entry.word)
+                Text(viewModel.entry.displayWord)
                     .font(.system(size: wordSize, weight: .semibold, design: .serif))
                     .foregroundStyle(DictionaryPalette.ink(colorScheme))
                     .fixedSize(horizontal: false, vertical: true)

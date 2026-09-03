@@ -41,6 +41,11 @@ struct WordEntry: Codable, Identifiable, Sendable, Equatable {
 }
 
 extension WordEntry {
+    var displayWord: String {
+        guard let firstCharacter = word.first else { return word }
+        return firstCharacter.uppercased() + word.dropFirst()
+    }
+
     static let fallback = WordEntry(
         id: UUID(uuidString: "7E419745-3F18-48C5-BD29-BA93CA62485E")!,
         word: "Ephemeral",

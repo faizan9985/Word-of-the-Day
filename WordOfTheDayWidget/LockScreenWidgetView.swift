@@ -19,17 +19,23 @@ struct LockScreenWidgetView: View {
     private var widgetContent: some View {
         switch family {
         case .accessoryInline:
-            Text("\(entry.wordEntry.word) · \(entry.wordEntry.partOfSpeech)")
+            Text("\(entry.wordEntry.displayWord) · \(entry.wordEntry.partOfSpeech)")
                 .font(.system(.body, design: .serif))
+                .lineLimit(1)
+                .minimumScaleFactor(0.65)
+                .allowsTightening(true)
 
         case .accessoryRectangular:
-            VStack(alignment: .leading, spacing: 2) {
-                Text(entry.wordEntry.word)
-                    .font(.system(.headline, design: .serif, weight: .semibold))
+            VStack(alignment: .leading, spacing: 1) {
+                Text(entry.wordEntry.displayWord)
+                    .font(.system(size: 18, weight: .bold, design: .serif))
                     .lineLimit(1)
+                    .minimumScaleFactor(0.55)
+                    .allowsTightening(true)
 
                 Text(entry.wordEntry.partOfSpeech)
                     .font(.system(.caption2, design: .serif).italic())
+                    .foregroundStyle(.secondary)
                     .lineLimit(1)
 
                 Text(entry.wordEntry.definition)
@@ -42,15 +48,18 @@ struct LockScreenWidgetView: View {
         case .accessoryCircular:
             ZStack {
                 AccessoryWidgetBackground()
-                VStack(spacing: -1) {
-                    Text(entry.wordEntry.word.prefix(1).uppercased())
-                        .font(.system(.title, design: .serif, weight: .semibold))
-                    Text("WOTD")
-                        .font(.system(size: 7, weight: .semibold))
-                        .tracking(0.5)
+                VStack(spacing: 0) {
+                    Text(entry.wordEntry.displayWord.prefix(1))
+                        .font(.system(size: 30, weight: .bold, design: .serif))
+                        .lineLimit(1)
+                        .minimumScaleFactor(0.75)
+                        .allowsTightening(true)
+                    Text(entry.wordEntry.partOfSpeech.prefix(4))
+                        .font(.system(size: 7, design: .serif).italic())
+                        .foregroundStyle(.secondary)
                 }
             }
-            .accessibilityLabel("Word of the day: \(entry.wordEntry.word)")
+            .accessibilityLabel("Word of the day: \(entry.wordEntry.displayWord)")
 
         case .systemSmall:
             smallWidget
@@ -59,42 +68,33 @@ struct LockScreenWidgetView: View {
             mediumWidget
 
         default:
-            Text(entry.wordEntry.word)
+            Text(entry.wordEntry.displayWord)
                 .font(.system(.headline, design: .serif, weight: .semibold))
+                .lineLimit(1)
+                .minimumScaleFactor(0.6)
+                .allowsTightening(true)
         }
     }
 
     private var smallWidget: some View {
-        VStack(alignment: .leading, spacing: 7) {
-            WidgetSectionLabel("Word of the Day")
+        VStack(alignment: .leading, spacing: 5) {
+            Text(entry.wordEntry.displayWord)
+                .font(.system(size: 30, weight: .bold, design: .serif))
+                .foregroundStyle(WidgetDictionaryPalette.ink(colorScheme))
+                .lineLimit(1)
+                .minimumScaleFactor(0.5)
+                .allowsTightening(true)
+
+            Text(entry.wordEntry.partOfSpeech)
+                .font(.system(.caption2, design: .serif).italic())
+                .foregroundStyle(WidgetDictionaryPalette.secondaryInk(colorScheme))
+                .lineLimit(1)
 
             Rectangle()
                 .fill(WidgetDictionaryPalette.accent(colorScheme).opacity(0.75))
                 .frame(height: 1)
                 .widgetAccentable()
                 .accessibilityHidden(true)
-
-            Spacer(minLength: 0)
-
-            Text(entry.wordEntry.word)
-                .font(.system(.title2, design: .serif, weight: .semibold))
-                .foregroundStyle(WidgetDictionaryPalette.ink(colorScheme))
-                .minimumScaleFactor(0.72)
-                .lineLimit(2)
-
-            ViewThatFits(in: .horizontal) {
-                HStack(spacing: 5) {
-                    Text(entry.wordEntry.partOfSpeech)
-                        .font(.system(.caption2, design: .serif).italic())
-                    Text("·")
-                    Text(entry.wordEntry.phonetic)
-                }
-
-                Text(entry.wordEntry.phonetic)
-            }
-            .font(.caption2)
-            .foregroundStyle(WidgetDictionaryPalette.secondaryInk(colorScheme))
-            .lineLimit(1)
 
             HStack(alignment: .firstTextBaseline, spacing: 6) {
                 Text("1")
@@ -112,32 +112,38 @@ struct LockScreenWidgetView: View {
     }
 
     private var mediumWidget: some View {
-        VStack(alignment: .leading, spacing: 7) {
-            WidgetSectionLabel("Word of the Day")
-
-            HStack(alignment: .firstTextBaseline, spacing: 10) {
-                Text(entry.wordEntry.word)
-                    .font(.system(.title, design: .serif, weight: .semibold))
+        VStack(alignment: .leading, spacing: 5) {
+            HStack(alignment: .lastTextBaseline, spacing: 8) {
+                Text(entry.wordEntry.displayWord)
+                    .font(.system(size: 34, weight: .bold, design: .serif))
                     .foregroundStyle(WidgetDictionaryPalette.ink(colorScheme))
-                    .minimumScaleFactor(0.72)
                     .lineLimit(1)
+                    .minimumScaleFactor(0.55)
+                    .allowsTightening(true)
+                    .layoutPriority(3)
 
-                Spacer(minLength: 4)
+                Text(entry.wordEntry.phonetic)
+                    .font(.system(.caption, design: .serif))
+                    .foregroundStyle(WidgetDictionaryPalette.secondaryInk(colorScheme))
+                    .minimumScaleFactor(0.75)
+                    .lineLimit(1)
+                    .layoutPriority(2)
 
                 Text(entry.wordEntry.partOfSpeech)
-                    .font(.system(.caption, design: .serif).italic())
-                    .foregroundStyle(WidgetDictionaryPalette.accent(colorScheme))
-                    .widgetAccentable()
-            }
+                    .font(.system(.caption2, design: .serif).italic())
+                    .foregroundStyle(WidgetDictionaryPalette.secondaryInk(colorScheme))
+                    .minimumScaleFactor(0.75)
+                    .lineLimit(1)
+                    .layoutPriority(1)
 
-            Text(entry.wordEntry.phonetic)
-                .font(.caption)
-                .foregroundStyle(WidgetDictionaryPalette.secondaryInk(colorScheme))
-                .lineLimit(1)
+                Spacer(minLength: 0)
+            }
+            .layoutPriority(3)
 
             Rectangle()
-                .fill(WidgetDictionaryPalette.rule(colorScheme))
-                .frame(height: 0.5)
+                .fill(WidgetDictionaryPalette.accent(colorScheme).opacity(0.75))
+                .frame(height: 1)
+                .widgetAccentable()
                 .accessibilityHidden(true)
 
             HStack(alignment: .firstTextBaseline, spacing: 8) {
@@ -150,31 +156,17 @@ struct LockScreenWidgetView: View {
             }
             .font(.system(.subheadline, design: .serif))
             .lineLimit(2)
+            .layoutPriority(2)
 
             Text(entry.wordEntry.exampleSentence)
                 .font(.system(.caption, design: .serif).italic())
                 .foregroundStyle(WidgetDictionaryPalette.secondaryInk(colorScheme))
-                .padding(.leading, 16)
-                .lineLimit(1)
+                .padding(.leading, 17)
+                .lineLimit(2)
+                .layoutPriority(1)
         }
+        .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .topLeading)
         .accessibilityElement(children: .combine)
-    }
-}
-
-private struct WidgetSectionLabel: View {
-    @Environment(\.colorScheme) private var colorScheme
-    let title: String
-
-    init(_ title: String) {
-        self.title = title
-    }
-
-    var body: some View {
-        Text(title.uppercased())
-            .font(.caption2.weight(.semibold))
-            .tracking(1.1)
-            .foregroundStyle(WidgetDictionaryPalette.accent(colorScheme))
-            .widgetAccentable()
     }
 }
 
