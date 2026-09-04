@@ -4,6 +4,8 @@ import Foundation
 
 protocol WordAPIProviding: Sendable {
     func fetchDailyWord() async throws -> WordEntry
+    func fetchDailySchedule() async throws -> [String: String]
+    func fetchArchivedWord(_ word: String, pacificDateKey: String) async throws -> WordEntry
     func fetchPronunciationAudioURL(for word: String) async throws -> URL?
 }
 
@@ -82,27 +84,24 @@ struct WordAPIService: WordAPIProviding {
             .first
     }
 
-    private func fetchCompleteWord() async throws -> WordEntry {
-        guard let dailyWordsEndpoint = URL(
+    func fetchDailySchedule() async throws -> [String: String] {
+        guard let endpoint = URL(
             string: "https://faizan9985.github.io/Word-of-the-Day/daily-words.json"
         ) else {
             throw APIError.invalidURL("hosted daily-word schedule")
         }
 
-        let schedule: [String: String] = try await request(
-            dailyWordsEndpoint,
+        return try await request(
+            endpoint,
             queryItems: [],
             name: "hosted daily-word schedule"
         )
-        try Task.checkCancellation()
+    }
 
-        let dateKey = WordEntry.pacificDateKey(for: Date())
-        guard let scheduledWord = schedule[dateKey]?.trimmingCharacters(
-            in: .whitespacesAndNewlines
-        ), !scheduledWord.isEmpty else {
-            throw APIError.missingHostedWord(dateKey)
-        }
-
+    func fetchArchivedWord(
+        _ word: String,
+        pacificDateKey: String
+    ) async throws -> WordEntry {
         guard let dictionaryKey = configuration.dictionaryAPIKey,
               !dictionaryKey.isEmpty else {
             throw APIError.missingConfiguration("MW_DICTIONARY_API_KEY")
@@ -120,17 +119,31 @@ struct WordAPIService: WordAPIProviding {
         }
 
         guard let entry = try await lookupCandidate(
-            scheduledWord,
+            word,
             dictionaryEndpoint: dictionaryEndpoint,
             thesaurusEndpoint: thesaurusEndpoint,
             dictionaryKey: dictionaryKey,
             thesaurusKey: thesaurusKey,
-            authoritativeDateKey: dateKey
+            authoritativeDateKey: pacificDateKey
         ), isComplete(entry) else {
-            throw APIError.incompleteHostedWord(scheduledWord, dateKey)
+            throw APIError.incompleteHostedWord(word, pacificDateKey)
         }
 
         return entry
+    }
+
+    private func fetchCompleteWord() async throws -> WordEntry {
+        let schedule = try await fetchDailySchedule()
+        try Task.checkCancellation()
+
+        let dateKey = WordEntry.pacificDateKey(for: Date())
+        guard let scheduledWord = schedule[dateKey]?.trimmingCharacters(
+            in: .whitespacesAndNewlines
+        ), !scheduledWord.isEmpty else {
+            throw APIError.missingHostedWord(dateKey)
+        }
+
+        return try await fetchArchivedWord(scheduledWord, pacificDateKey: dateKey)
     }
 
     private func lookupCandidate(

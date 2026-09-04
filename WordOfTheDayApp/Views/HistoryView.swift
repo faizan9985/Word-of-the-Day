@@ -4,14 +4,16 @@ import SwiftData
 import SwiftUI
 
 struct ArchiveView: View {
+    @Environment(\.modelContext) private var modelContext
     @Environment(\.colorScheme) private var colorScheme
     @Query(sort: \ArchivedWord.date, order: .reverse) private var archivedWords: [ArchivedWord]
     @Query(filter: #Predicate<SavedWord> { $0.isBookmarked }) private var favorites: [SavedWord]
     @State private var searchText = ""
 
     private var filteredWords: [ArchivedWord] {
-        guard !searchText.isEmpty else { return archivedWords }
-        return archivedWords.filter {
+        let recentWords = Array(archivedWords.prefix(30))
+        guard !searchText.isEmpty else { return recentWords }
+        return recentWords.filter {
             $0.word.localizedCaseInsensitiveContains(searchText) ||
             $0.definitionText.localizedCaseInsensitiveContains(searchText)
         }
@@ -45,6 +47,9 @@ struct ArchiveView: View {
             }
         }
         .background(AppPalette.paper(colorScheme).ignoresSafeArea())
+        .task {
+            await ArchiveStore.sync(in: modelContext)
+        }
     }
 
     private func isFavorite(_ entry: WordEntry) -> Bool {

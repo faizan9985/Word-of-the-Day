@@ -47,29 +47,109 @@ enum WordHistoryStore {
 
 @MainActor
 enum ArchiveStore {
-    private static let maximumEntryCount = 30
+    private static let maximumPublishedDays = 30
 
     static func record(_ entry: WordEntry, in context: ModelContext) {
-        let descriptor = FetchDescriptor<ArchivedWord>(
-            sortBy: [SortDescriptor(\ArchivedWord.date, order: .reverse)]
-        )
+        guard let dateKey = entry.authoritativePacificDateKey,
+              let date = pacificDate(from: dateKey) else { return }
 
+        let existingWords = (try? context.fetch(FetchDescriptor<ArchivedWord>())) ?? []
+        guard !existingWords.contains(where: { $0.pacificDateKey == dateKey }) else { return }
+
+        context.insert(ArchivedWord(entry: entry, pacificDateKey: dateKey, date: date))
+        try? context.save()
+    }
+
+    static func sync(
+        in context: ModelContext,
+        service: any WordAPIProviding = WordAPIService(),
+        storage: WordStorage = WordStorage(),
+        now: Date = Date()
+    ) async {
+        let schedule: [String: String]
         do {
-            let archivedWords = try context.fetch(descriptor)
-            let calendar = Calendar.current
-            guard !archivedWords.contains(where: {
-                calendar.isDate($0.date, inSameDayAs: entry.date)
-            }) else { return }
-
-            context.insert(ArchivedWord(entry: entry))
-
-            let wordsToPrune = archivedWords.dropFirst(maximumEntryCount - 1)
-            for archivedWord in wordsToPrune {
-                context.delete(archivedWord)
-            }
-            try context.save()
+            schedule = try await service.fetchDailySchedule()
         } catch {
             return
         }
+
+        let currentDateKey = WordEntry.pacificDateKey(for: now)
+        let publishedDays = schedule.compactMap { dateKey, word -> PublishedDay? in
+            let word = word.trimmingCharacters(in: .whitespacesAndNewlines)
+            guard dateKey <= currentDateKey,
+                  !word.isEmpty,
+                  let date = pacificDate(from: dateKey) else {
+                return nil
+            }
+            return PublishedDay(dateKey: dateKey, date: date, word: word)
+        }
+        .sorted { $0.dateKey > $1.dateKey }
+        .prefix(maximumPublishedDays)
+
+        let descriptor = FetchDescriptor<ArchivedWord>()
+        let existingWords = (try? context.fetch(descriptor)) ?? []
+        var cachedDateKeys = Set(existingWords.map(\.pacificDateKey))
+        let currentEntry = storage.loadCurrentWord()
+
+        for day in publishedDays where !cachedDateKeys.contains(day.dateKey) {
+            if let currentEntry,
+               currentEntry.authoritativePacificDateKey == day.dateKey,
+               currentEntry.word.caseInsensitiveCompare(day.word) == .orderedSame {
+                let archivedWord = ArchivedWord(
+                    entry: currentEntry,
+                    pacificDateKey: day.dateKey,
+                    date: day.date
+                )
+                context.insert(archivedWord)
+                do {
+                    try context.save()
+                    cachedDateKeys.insert(day.dateKey)
+                } catch {
+                    context.delete(archivedWord)
+                    continue
+                }
+                continue
+            }
+
+            do {
+                let entry = try await service.fetchArchivedWord(
+                    day.word,
+                    pacificDateKey: day.dateKey
+                )
+                let archivedWord = ArchivedWord(
+                    entry: entry,
+                    pacificDateKey: day.dateKey,
+                    date: day.date
+                )
+                context.insert(archivedWord)
+                do {
+                    try context.save()
+                    cachedDateKeys.insert(day.dateKey)
+                } catch {
+                    context.delete(archivedWord)
+                    continue
+                }
+            } catch is CancellationError {
+                return
+            } catch {
+                continue
+            }
+        }
+    }
+
+    private static func pacificDate(from dateKey: String) -> Date? {
+        let formatter = DateFormatter()
+        formatter.calendar = WordEntry.pacificCalendar
+        formatter.locale = Locale(identifier: "en_US_POSIX")
+        formatter.timeZone = WordEntry.pacificCalendar.timeZone
+        formatter.dateFormat = "yyyy-MM-dd"
+        formatter.isLenient = false
+        return formatter.date(from: dateKey)
+    }
+
+    private struct PublishedDay {
+        let dateKey: String
+        let date: Date
+        let word: String
     }
 }
