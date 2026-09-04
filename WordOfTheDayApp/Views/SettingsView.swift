@@ -53,67 +53,74 @@ struct SettingsView: View {
     }
 
     var body: some View {
-        Form {
-            Section {
-                Picker("Theme", selection: $appAppearance) {
-                    ForEach(AppAppearance.allCases) { appearance in
-                        Text(appearance.title).tag(appearance.rawValue)
-                    }
-                }
-                .pickerStyle(.segmented)
-                .listRowBackground(SettingsPalette.paper(colorScheme))
-                .listRowSeparatorTint(SettingsPalette.rule(colorScheme))
-            } header: {
-                SettingsSectionLabel("Appearance")
-            }
+        VStack(alignment: .leading, spacing: 0) {
+            Text("Settings")
+                .font(.system(size: 38, weight: .bold, design: .rounded))
+                .foregroundStyle(AppPalette.ink(colorScheme))
+                .padding(.horizontal, 22)
+                .padding(.top, 24)
 
-            Section {
-                Toggle("Daily Notification", isOn: $dailyReminderEnabled)
-                    .onChange(of: dailyReminderEnabled) { _, enabled in
-                        Task { await updateReminder(enabled: enabled) }
+            Form {
+                Section {
+                    Picker("Theme", selection: $appAppearance) {
+                        ForEach(AppAppearance.allCases) { appearance in
+                            Text(appearance.title).tag(appearance.rawValue)
+                        }
                     }
+                    .pickerStyle(.segmented)
                     .listRowBackground(SettingsPalette.paper(colorScheme))
                     .listRowSeparatorTint(SettingsPalette.rule(colorScheme))
-
-                if dailyReminderEnabled {
-                    DatePicker(
-                        "Notification Time",
-                        selection: reminderTime,
-                        displayedComponents: .hourAndMinute
-                    )
-                    .listRowBackground(SettingsPalette.paper(colorScheme))
-                    .listRowSeparatorTint(SettingsPalette.rule(colorScheme))
+                } header: {
+                    SettingsSectionLabel("Appearance")
                 }
 
-                if let errorMessage {
-                    Label(errorMessage, systemImage: "exclamationmark.triangle")
-                        .font(.footnote)
-                        .foregroundStyle(SettingsPalette.secondaryInk(colorScheme))
-                        .accessibilityLabel("Error: \(errorMessage)")
+                Section {
+                    Toggle("Daily Notification", isOn: $dailyReminderEnabled)
+                        .onChange(of: dailyReminderEnabled) { _, enabled in
+                            Task { await updateReminder(enabled: enabled) }
+                        }
                         .listRowBackground(SettingsPalette.paper(colorScheme))
                         .listRowSeparatorTint(SettingsPalette.rule(colorScheme))
-                }
-            } header: {
-                SettingsSectionLabel("Reminders")
-            }
 
-            Section {
-                Text("Add Word of the Day from the Lock Screen or Home Screen widget gallery.")
-                    .font(.system(.subheadline, design: .serif))
-                    .foregroundStyle(SettingsPalette.secondaryInk(colorScheme))
-                    .lineSpacing(3)
-                    .listRowBackground(SettingsPalette.paper(colorScheme))
-                    .listRowSeparatorTint(SettingsPalette.rule(colorScheme))
-            } header: {
-                SettingsSectionLabel("Widget")
+                    if dailyReminderEnabled {
+                        DatePicker(
+                            "Notification Time",
+                            selection: reminderTime,
+                            displayedComponents: .hourAndMinute
+                        )
+                        .listRowBackground(SettingsPalette.paper(colorScheme))
+                        .listRowSeparatorTint(SettingsPalette.rule(colorScheme))
+                    }
+
+                    if let errorMessage {
+                        Label(errorMessage, systemImage: "exclamationmark.triangle")
+                            .font(.footnote)
+                            .foregroundStyle(SettingsPalette.secondaryInk(colorScheme))
+                            .accessibilityLabel("Error: \(errorMessage)")
+                            .listRowBackground(SettingsPalette.paper(colorScheme))
+                            .listRowSeparatorTint(SettingsPalette.rule(colorScheme))
+                    }
+                } header: {
+                    SettingsSectionLabel("Reminders")
+                }
+
+                Section {
+                    Text("Add Word of the Day from the Lock Screen or Home Screen widget gallery.")
+                        .font(.system(.subheadline, design: .serif))
+                        .foregroundStyle(SettingsPalette.secondaryInk(colorScheme))
+                        .lineSpacing(3)
+                        .listRowBackground(SettingsPalette.paper(colorScheme))
+                        .listRowSeparatorTint(SettingsPalette.rule(colorScheme))
+                } header: {
+                    SettingsSectionLabel("Widget")
+                }
             }
+            .font(.body)
+            .scrollContentBackground(.hidden)
         }
-        .font(.body)
-        .scrollContentBackground(.hidden)
         .background(SettingsPalette.paper(colorScheme).ignoresSafeArea())
         .tint(SettingsPalette.accent(colorScheme))
-        .navigationTitle("Settings")
-        .navigationBarTitleDisplayMode(.inline)
+        .navigationBarHidden(true)
     }
 
     @MainActor

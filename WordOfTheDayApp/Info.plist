@@ -24,6 +24,8 @@
 	<string>$(MW_DICTIONARY_API_KEY)</string>
 	<key>MW_THESAURUS_API_KEY</key>
 	<string>$(MW_THESAURUS_API_KEY)</string>
+	<key>NSPhotoLibraryAddUsageDescription</key>
+	<string>Save Word of the Day cards to your photo library.</string>
 	<key>WORD_API_ENDPOINT</key>
 	<string>$(WORD_API_ENDPOINT)</string>
 	<key>WORD_API_KEY</key>

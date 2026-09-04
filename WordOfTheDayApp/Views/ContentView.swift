@@ -2,6 +2,8 @@
 
 import SwiftData
 import SwiftUI
+import Photos
+import UIKit
 
 struct ContentView: View {
     @Environment(\.modelContext) private var modelContext
@@ -293,63 +295,190 @@ func shareText(for entry: WordEntry) -> String {
 
 struct ShareWordSheet: View {
     @Environment(\.dismiss) private var dismiss
+    @Environment(\.colorScheme) private var colorScheme
+    let entry: WordEntry
+    @State private var shareImageItem: ShareImageItem?
+    @State private var saveResultMessage: String?
+
+    var body: some View {
+        VStack(spacing: 0) {
+            HStack {
+                Spacer()
+                Button("Done") { dismiss() }
+                    .font(.body.weight(.semibold))
+                    .foregroundStyle(AppPalette.accent(colorScheme))
+            }
+            .padding(.horizontal, 20)
+            .frame(height: 44)
+
+            GeometryReader { geometry in
+                ScrollView {
+                    VStack(spacing: 22) {
+                        ShareCardView(entry: entry)
+                            .frame(width: 340, height: 340)
+
+                        HStack(spacing: 12) {
+                            shareActionButton("Share Image", systemImage: "photo", action: shareImage)
+                            shareActionButton("Save Image", systemImage: "square.and.arrow.down", action: saveImage)
+                        }
+
+                        ShareLink(item: shareText(for: entry)) {
+                            Label("Share Text", systemImage: "text.quote").shareActionStyle()
+                        }
+                        .buttonStyle(.plain)
+                    }
+                    .frame(minHeight: geometry.size.height, alignment: .center)
+                    .padding(.horizontal, 20)
+                    .padding(.bottom, 20)
+                }
+                .scrollIndicators(.hidden)
+            }
+        }
+        .background(Color.black.opacity(0.94).ignoresSafeArea())
+        .preferredColorScheme(.dark)
+        .sheet(item: $shareImageItem) { item in
+            ActivityView(activityItems: [item.image])
+                .presentationDetents([.medium, .large])
+        }
+        .alert("Save Image", isPresented: saveResultIsPresented) {
+            Button("OK", role: .cancel) { saveResultMessage = nil }
+        } message: {
+            Text(saveResultMessage ?? "")
+        }
+    }
+
+    private var saveResultIsPresented: Binding<Bool> {
+        Binding(get: { saveResultMessage != nil }, set: { if !$0 { saveResultMessage = nil } })
+    }
+
+    private func shareActionButton(
+        _ title: String,
+        systemImage: String,
+        action: @escaping () -> Void
+    ) -> some View {
+        Button(action: action) {
+            Label(title, systemImage: systemImage).shareActionStyle()
+        }
+        .buttonStyle(.plain)
+    }
+
+    @MainActor
+    private func shareImage() {
+        guard let image = ShareCardRenderer.image(for: entry),
+              image.size.width > 0,
+              image.size.height > 0,
+              image.cgImage != nil else {
+            saveResultMessage = "The share image could not be created. Please try again."
+            return
+        }
+        shareImageItem = ShareImageItem(image: image)
+    }
+
+    private func saveImage() {
+        guard let image = ShareCardRenderer.image(for: entry) else {
+            saveResultMessage = "The share image could not be created. Please try again."
+            return
+        }
+        Task {
+            do {
+                try await ShareCardPhotoSaver.save(image)
+                saveResultMessage = "The Word of the Day card was saved to Photos."
+            } catch {
+                saveResultMessage = error.localizedDescription
+            }
+        }
+    }
+}
+
+private struct ShareImageItem: Identifiable {
+    let id = UUID()
+    let image: UIImage
+}
+
+struct ShareCardView: View {
     let entry: WordEntry
 
     var body: some View {
-        NavigationStack {
-            VStack(spacing: 22) {
-                VStack(spacing: 12) {
-                    Text("WORD OF THE DAY")
-                        .font(.caption2.weight(.semibold))
-                        .tracking(1.8)
-                        .foregroundStyle(Color(red: 0.52, green: 0.34, blue: 0.17))
-                    Text(entry.date, format: .dateTime.month(.wide).day().year())
-                        .font(.caption)
-                        .foregroundStyle(.secondary)
-                    Text(entry.displayWord)
-                        .font(.system(size: 40, weight: .bold, design: .serif))
-                        .minimumScaleFactor(0.6)
-                        .lineLimit(1)
-                        .foregroundStyle(.black)
-                    Text("\(entry.phonetic)  ·  \(entry.partOfSpeech)")
-                        .font(.system(.caption, design: .serif).italic())
-                        .foregroundStyle(.secondary)
-                    Text(entry.definition)
-                        .font(.system(.body, design: .serif))
-                        .foregroundStyle(.black)
-                        .multilineTextAlignment(.center)
-                        .lineLimit(4)
-                    Spacer(minLength: 4)
-                    Text("WORD OF THE DAY")
-                        .font(.system(size: 9, weight: .medium))
-                        .tracking(1.2)
-                        .foregroundStyle(.secondary)
-                }
-                .padding(24)
-                .frame(maxWidth: .infinity, minHeight: 280)
-                .background(
-                    Color(red: 0.976, green: 0.969, blue: 0.949),
-                    in: RoundedRectangle(cornerRadius: 22)
-                )
-
-                ShareLink(item: shareText(for: entry)) {
-                    Label("Share Word", systemImage: "square.and.arrow.up")
-                        .font(.headline)
-                        .frame(maxWidth: .infinity)
-                        .padding(.vertical, 14)
-                        .background(.thinMaterial, in: RoundedRectangle(cornerRadius: 16))
-                }
-                .buttonStyle(.plain)
-            }
-            .padding(20)
-            .background(Color.black.opacity(0.94).ignoresSafeArea())
-            .toolbar {
-                ToolbarItem(placement: .topBarTrailing) {
-                    Button("Done") { dismiss() }
-                }
-            }
+        VStack(spacing: 11) {
+            Text("WORD OF THE DAY APP")
+                .font(.caption2.weight(.semibold))
+                .tracking(1.8)
+                .foregroundStyle(Color(red: 0.52, green: 0.34, blue: 0.17))
+            Text("FSS Productions")
+                .font(.system(size: 8, weight: .medium))
+                .tracking(0.6)
+                .foregroundStyle(.secondary)
+            Text(entry.date, format: .dateTime.month(.wide).day().year())
+                .font(.caption)
+                .foregroundStyle(.secondary)
+            Text(entry.displayWord)
+                .font(.system(size: 40, weight: .bold, design: .serif))
+                .minimumScaleFactor(0.6)
+                .lineLimit(1)
+                .foregroundStyle(.black)
+            Text("\(entry.phonetic)  ·  \(entry.partOfSpeech)")
+                .font(.system(.caption, design: .serif).italic())
+                .foregroundStyle(.secondary)
+            Text(entry.definition)
+                .font(.system(.body, design: .serif))
+                .foregroundStyle(.black)
+                .multilineTextAlignment(.center)
+                .lineLimit(4)
+            Spacer(minLength: 4)
         }
-        .preferredColorScheme(.dark)
+        .padding(24)
+        .background(
+            Color(red: 0.976, green: 0.969, blue: 0.949),
+            in: RoundedRectangle(cornerRadius: 22)
+        )
+    }
+}
+
+@MainActor
+private enum ShareCardRenderer {
+    static func image(for entry: WordEntry) -> UIImage? {
+        let renderer = ImageRenderer(
+            content: ShareCardView(entry: entry).frame(width: 340, height: 340)
+        )
+        renderer.scale = 3
+        renderer.isOpaque = false
+        return renderer.uiImage
+    }
+}
+
+private enum ShareCardPhotoSaver {
+    static func save(_ image: UIImage) async throws {
+        let authorization = await PHPhotoLibrary.requestAuthorization(for: .addOnly)
+        guard authorization == .authorized || authorization == .limited else {
+            throw SaveError.accessDenied
+        }
+        try await PHPhotoLibrary.shared().performChanges {
+            PHAssetChangeRequest.creationRequestForAsset(from: image)
+        }
+    }
+
+    enum SaveError: LocalizedError {
+        case accessDenied
+        var errorDescription: String? {
+            "Photos access was denied. You can allow access in Settings and try again."
+        }
+    }
+}
+
+private struct ActivityView: UIViewControllerRepresentable {
+    let activityItems: [Any]
+    func makeUIViewController(context: Context) -> UIActivityViewController {
+        UIActivityViewController(activityItems: activityItems, applicationActivities: nil)
+    }
+    func updateUIViewController(_ controller: UIActivityViewController, context: Context) {}
+}
+
+private extension View {
+    func shareActionStyle() -> some View {
+        font(.headline)
+            .frame(maxWidth: .infinity)
+            .padding(.vertical, 14)
+            .background(.thinMaterial, in: RoundedRectangle(cornerRadius: 16))
     }
 }
 
