@@ -24,7 +24,10 @@ struct ContentView: View {
                 .padding(.top, 8)
                 .padding(.bottom, 6)
         }
-        .task { WordHistoryStore.migrateToBookmarkOnlyHistoryIfNeeded(in: modelContext) }
+        .task {
+            WordHistoryStore.migrateToBookmarkOnlyHistoryIfNeeded(in: modelContext)
+            ArchiveStore.normalizeLegacyRows(in: modelContext)
+        }
     }
 }
 

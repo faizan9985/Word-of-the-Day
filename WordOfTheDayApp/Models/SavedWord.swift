@@ -42,7 +42,7 @@ final class SavedWord {
 
 @Model
 final class ArchivedWord {
-    @Attribute(.unique) var pacificDateKey: String
+    var pacificDateKey: String?
     var id: UUID
     var word: String
     var phonetic: String
@@ -50,8 +50,8 @@ final class ArchivedWord {
     var partOfSpeech: String
     var definitionText: String
     var exampleSentence: String
-    var synonyms: [String]
-    var antonyms: [String]
+    var synonyms: [String]?
+    var antonyms: [String]?
     var date: Date
 
     init(entry: WordEntry, pacificDateKey: String, date: Date) {
@@ -63,8 +63,8 @@ final class ArchivedWord {
         self.partOfSpeech = entry.partOfSpeech
         self.definitionText = entry.definition
         self.exampleSentence = entry.exampleSentence
-        self.synonyms = entry.synonyms ?? []
-        self.antonyms = entry.antonyms ?? []
+        self.synonyms = entry.synonyms
+        self.antonyms = entry.antonyms
         self.date = date
     }
 

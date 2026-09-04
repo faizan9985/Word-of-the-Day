@@ -49,7 +49,34 @@ enum WordHistoryStore {
 enum ArchiveStore {
     private static let maximumPublishedDays = 30
 
+    static func normalizeLegacyRows(in context: ModelContext) {
+        let descriptor = FetchDescriptor<ArchivedWord>(
+            sortBy: [
+                SortDescriptor(\ArchivedWord.date, order: .reverse),
+                SortDescriptor(\ArchivedWord.id)
+            ]
+        )
+
+        guard let archivedWords = try? context.fetch(descriptor) else { return }
+
+        var retainedDateKeys = Set<String>()
+        for archivedWord in archivedWords {
+            let dateKey = archivedWord.pacificDateKey
+                ?? WordEntry.pacificDateKey(for: archivedWord.date)
+
+            if retainedDateKeys.insert(dateKey).inserted {
+                archivedWord.pacificDateKey = dateKey
+            } else {
+                context.delete(archivedWord)
+            }
+        }
+
+        try? context.save()
+    }
+
     static func record(_ entry: WordEntry, in context: ModelContext) {
+        normalizeLegacyRows(in: context)
+
         guard let dateKey = entry.authoritativePacificDateKey,
               let date = pacificDate(from: dateKey) else { return }
 
@@ -66,6 +93,8 @@ enum ArchiveStore {
         storage: WordStorage = WordStorage(),
         now: Date = Date()
     ) async {
+        normalizeLegacyRows(in: context)
+
         let schedule: [String: String]
         do {
             schedule = try await service.fetchDailySchedule()
@@ -88,7 +117,7 @@ enum ArchiveStore {
 
         let descriptor = FetchDescriptor<ArchivedWord>()
         let existingWords = (try? context.fetch(descriptor)) ?? []
-        var cachedDateKeys = Set(existingWords.map(\.pacificDateKey))
+        var cachedDateKeys = Set(existingWords.compactMap(\.pacificDateKey))
         let currentEntry = storage.loadCurrentWord()
 
         for day in publishedDays where !cachedDateKeys.contains(day.dateKey) {
