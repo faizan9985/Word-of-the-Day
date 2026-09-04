@@ -7,7 +7,7 @@ protocol WordAPIProviding: Sendable {
     func fetchPronunciationAudioURL(for word: String) async throws -> URL?
 }
 
-/// Builds a daily word from bundled candidates and Merriam-Webster lookups.
+/// Builds the Pacific-date hosted daily word with Merriam-Webster enrichment.
 struct WordAPIService: WordAPIProviding {
     struct Configuration: Sendable {
         let dictionaryAPIKey: String?
@@ -83,6 +83,26 @@ struct WordAPIService: WordAPIProviding {
     }
 
     private func fetchCompleteWord() async throws -> WordEntry {
+        guard let dailyWordsEndpoint = URL(
+            string: "https://faizan9985.github.io/Word-of-the-Day/daily-words.json"
+        ) else {
+            throw APIError.invalidURL("hosted daily-word schedule")
+        }
+
+        let schedule: [String: String] = try await request(
+            dailyWordsEndpoint,
+            queryItems: [],
+            name: "hosted daily-word schedule"
+        )
+        try Task.checkCancellation()
+
+        let dateKey = WordEntry.pacificDateKey(for: Date())
+        guard let scheduledWord = schedule[dateKey]?.trimmingCharacters(
+            in: .whitespacesAndNewlines
+        ), !scheduledWord.isEmpty else {
+            throw APIError.missingHostedWord(dateKey)
+        }
+
         guard let dictionaryKey = configuration.dictionaryAPIKey,
               !dictionaryKey.isEmpty else {
             throw APIError.missingConfiguration("MW_DICTIONARY_API_KEY")
@@ -99,53 +119,18 @@ struct WordAPIService: WordAPIProviding {
             throw APIError.invalidURL("Merriam-Webster")
         }
 
-        let maximumAttempts = 10
-        let candidates = try loadCandidates().shuffled()
-        var attemptedWords = Set<String>()
-
-        for candidate in candidates {
-            try Task.checkCancellation()
-
-            let word = candidate.trimmingCharacters(in: .whitespacesAndNewlines)
-            let candidateKey = word.lowercased()
-            guard !word.isEmpty, attemptedWords.insert(candidateKey).inserted else {
-                continue
-            }
-            guard attemptedWords.count <= maximumAttempts else {
-                break
-            }
-
-            if let entry = try await lookupCandidate(
-                word,
-                dictionaryEndpoint: dictionaryEndpoint,
-                thesaurusEndpoint: thesaurusEndpoint,
-                dictionaryKey: dictionaryKey,
-                thesaurusKey: thesaurusKey
-            ), isComplete(entry) {
-                return entry
-            }
+        guard let entry = try await lookupCandidate(
+            scheduledWord,
+            dictionaryEndpoint: dictionaryEndpoint,
+            thesaurusEndpoint: thesaurusEndpoint,
+            dictionaryKey: dictionaryKey,
+            thesaurusKey: thesaurusKey,
+            authoritativeDateKey: dateKey
+        ), isComplete(entry) else {
+            throw APIError.incompleteHostedWord(scheduledWord, dateKey)
         }
 
-        throw APIError.noCompleteWord(maximumAttempts)
-    }
-
-    private func loadCandidates() throws -> [String] {
-        guard let url = Bundle.main.url(forResource: "words", withExtension: "json") else {
-            throw APIError.missingCandidateList
-        }
-
-        do {
-            let data = try Data(contentsOf: url)
-            let candidateList = try JSONDecoder().decode(CandidateList.self, from: data)
-            guard !candidateList.words.isEmpty else {
-                throw APIError.emptyCandidateList
-            }
-            return candidateList.words
-        } catch let error as APIError {
-            throw error
-        } catch {
-            throw APIError.invalidCandidateList(error)
-        }
+        return entry
     }
 
     private func lookupCandidate(
@@ -153,7 +138,8 @@ struct WordAPIService: WordAPIProviding {
         dictionaryEndpoint: URL,
         thesaurusEndpoint: URL,
         dictionaryKey: String,
-        thesaurusKey: String
+        thesaurusKey: String,
+        authoritativeDateKey: String
     ) async throws -> WordEntry? {
         async let dictionaryResults: [DictionaryLookupResult] = request(
             dictionaryEndpoint.appendingPathComponent(word),
@@ -178,9 +164,6 @@ struct WordAPIService: WordAPIProviding {
             return nil
         }
 
-        let headword = firstNonEmpty(
-            dictionaryEntries.map { sanitizeHeadword($0.headword?.text) }
-        ) ?? word
         let partOfSpeech = firstNonEmpty(dictionaryEntries.map(\.partOfSpeech)) ?? "Unknown"
         let definition = firstNonEmpty(
             dictionaryEntries.flatMap { ($0.shortDefinitions ?? []).map(sanitize) }
@@ -219,14 +202,15 @@ struct WordAPIService: WordAPIProviding {
         )
 
         return WordEntry(
-            word: headword,
+            word: word,
             phonetic: pronunciation,
             pronunciationAudioURL: pronunciationAudioURL,
             partOfSpeech: partOfSpeech,
             definition: definition,
             exampleSentence: example,
             synonyms: synonyms,
-            antonyms: antonyms
+            antonyms: antonyms,
+            authoritativePacificDateKey: authoritativeDateKey
         )
     }
 
@@ -437,10 +421,6 @@ struct WordAPIService: WordAPIProviding {
 }
 
 private extension WordAPIService {
-    struct CandidateList: Decodable {
-        let words: [String]
-    }
-
     enum DictionaryLookupResult: Decodable {
         case entry(DictionaryEntry)
         case suggestion(String)
@@ -568,38 +548,32 @@ private extension WordAPIService {
 
     enum APIError: LocalizedError {
         case missingConfiguration(String)
-        case missingCandidateList
-        case emptyCandidateList
-        case invalidCandidateList(Error)
+        case missingHostedWord(String)
+        case incompleteHostedWord(String, String)
         case invalidURL(String)
         case invalidResponse(String)
         case httpFailure(String, Int)
         case networkFailure(String, Error)
         case decodingFailure(String, Error)
-        case noCompleteWord(Int)
 
         var errorDescription: String? {
             switch self {
             case .missingConfiguration(let key):
                 return "Missing Merriam-Webster configuration: \(key)."
-            case .missingCandidateList:
-                return "The bundled words.json candidate list is missing."
-            case .emptyCandidateList:
-                return "The bundled words.json candidate list is empty."
-            case .invalidCandidateList(let error):
-                return "Could not load the bundled words.json candidate list: \(error.localizedDescription)"
+            case .missingHostedWord(let dateKey):
+                return "No daily word is scheduled for \(dateKey) Pacific Time."
+            case .incompleteHostedWord(let word, let dateKey):
+                return "The scheduled word “\(word)” for \(dateKey) could not be fully enriched."
             case .invalidURL(let request):
                 return "Could not construct the \(request) request."
             case .invalidResponse(let request):
-                return "Merriam-Webster returned an invalid response for \(request)."
+                return "The \(request) returned an invalid response."
             case .httpFailure(let request, let statusCode):
-                return "Merriam-Webster \(request) failed with HTTP \(statusCode)."
+                return "The \(request) failed with HTTP \(statusCode)."
             case .networkFailure(let request, let error):
-                return "Merriam-Webster \(request) failed: \(error.localizedDescription)"
+                return "The \(request) could not be reached: \(error.localizedDescription)"
             case .decodingFailure(let request, let error):
-                return "Could not decode the Merriam-Webster \(request): \(error.localizedDescription)"
-            case .noCompleteWord(let attempts):
-                return "Could not find a complete word after \(attempts) attempts."
+                return "Could not decode the \(request): \(error.localizedDescription)"
             }
         }
     }
