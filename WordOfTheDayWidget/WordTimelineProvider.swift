@@ -20,11 +20,12 @@ struct WordTimelineProvider: TimelineProvider {
 
     func getTimeline(in context: Context, completion: @escaping (Timeline<WordTimelineEntry>) -> Void) {
         let entry = makeEntry()
-        let midnight = Calendar.current.nextDate(
+        let pacificCalendar = WordEntry.pacificCalendar
+        let midnight = pacificCalendar.nextDate(
             after: .now,
             matching: DateComponents(hour: 0, minute: 0),
             matchingPolicy: .nextTime
-        ) ?? Calendar.current.date(byAdding: .day, value: 1, to: .now)!
+        ) ?? pacificCalendar.date(byAdding: .day, value: 1, to: .now)!
 
         completion(Timeline(entries: [entry], policy: .after(midnight)))
     }
@@ -32,7 +33,7 @@ struct WordTimelineProvider: TimelineProvider {
     private func makeEntry() -> WordTimelineEntry {
         WordTimelineEntry(
             date: .now,
-            wordEntry: storage.loadCurrentWord() ?? .fallback
+            wordEntry: storage.loadCurrentWord() ?? .unavailable
         )
     }
 }

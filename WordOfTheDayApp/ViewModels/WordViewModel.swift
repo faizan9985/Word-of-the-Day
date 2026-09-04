@@ -20,14 +20,25 @@ final class WordViewModel: ObservableObject {
     ) {
         self.service = service
         self.storage = storage
-        self.entry = storage.loadCurrentWord() ?? .fallback
+        let now = Date()
+        let currentDateKey = WordEntry.pacificDateKey(for: now)
+        if let savedEntry = storage.loadCurrentWord(),
+           WordEntry.pacificCalendar.isDate(savedEntry.date, inSameDayAs: now),
+           savedEntry.authoritativePacificDateKey == currentDateKey {
+            self.entry = savedEntry
+        } else {
+            self.entry = .unavailable
+        }
     }
 
     func refresh() async {
         guard !isLoading else { return }
 
+        let now = Date()
+        let currentDateKey = WordEntry.pacificDateKey(for: now)
         if let savedEntry = storage.loadCurrentWord(),
-           Calendar.current.isDate(savedEntry.date, inSameDayAs: Date()) {
+           WordEntry.pacificCalendar.isDate(savedEntry.date, inSameDayAs: now),
+           savedEntry.authoritativePacificDateKey == currentDateKey {
             entry = savedEntry
             errorMessage = nil
 
@@ -57,7 +68,8 @@ final class WordViewModel: ObservableObject {
                     exampleSentence: savedEntry.exampleSentence,
                     synonyms: savedEntry.synonyms,
                     antonyms: savedEntry.antonyms,
-                    date: savedEntry.date
+                    date: savedEntry.date,
+                    authoritativePacificDateKey: savedEntry.authoritativePacificDateKey
                 )
                 try storage.saveCurrentWord(enrichedEntry)
                 entry = enrichedEntry
