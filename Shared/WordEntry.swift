@@ -55,6 +55,16 @@ extension WordEntry {
         return calendar
     }
 
+    func isCurrent(on date: Date) -> Bool {
+        authoritativePacificDateKey == Self.pacificDateKey(for: date)
+            && Self.pacificCalendar.isDate(self.date, inSameDayAs: date)
+    }
+
+    static func nextPacificMidnight(after date: Date) -> Date {
+        let calendar = pacificCalendar
+        return calendar.date(byAdding: .day, value: 1, to: calendar.startOfDay(for: date))!
+    }
+
     static func pacificDateKey(for date: Date) -> String {
         let formatter = DateFormatter()
         formatter.calendar = pacificCalendar

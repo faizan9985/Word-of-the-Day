@@ -7,12 +7,14 @@ import UIKit
 
 struct ContentView: View {
     @Environment(\.modelContext) private var modelContext
+    @Environment(\.scenePhase) private var scenePhase
+    @StateObject private var viewModel = WordViewModel()
     @State private var selectedTab: AppTab = .today
 
     var body: some View {
         Group {
             switch selectedTab {
-            case .today: NavigationStack { TodayView() }
+            case .today: NavigationStack { TodayView(viewModel: viewModel) }
             case .archive: NavigationStack { ArchiveView() }
             case .favorites: NavigationStack { FavoritesView() }
             case .settings: NavigationStack { SettingsView() }
@@ -23,6 +25,10 @@ struct ContentView: View {
                 .padding(.horizontal, 16)
                 .padding(.top, 8)
                 .padding(.bottom, 6)
+        }
+        .task(id: scenePhase) {
+            guard scenePhase == .active else { return }
+            await viewModel.monitorPacificRollover()
         }
         .task {
             WordHistoryStore.migrateToBookmarkOnlyHistoryIfNeeded(in: modelContext)
@@ -82,7 +88,7 @@ private struct TodayView: View {
     @Environment(\.modelContext) private var modelContext
     @Environment(\.colorScheme) private var colorScheme
     @Query(filter: #Predicate<SavedWord> { $0.isBookmarked }) private var favorites: [SavedWord]
-    @StateObject private var viewModel = WordViewModel()
+    @ObservedObject var viewModel: WordViewModel
     @State private var isShowingShareSheet = false
 
     private var currentFavorite: SavedWord? {
@@ -114,6 +120,7 @@ private struct TodayView: View {
         .background(AppPalette.paper(colorScheme).ignoresSafeArea())
         .refreshable { await refreshAndArchive() }
         .task { await refreshAndArchive() }
+        .onChange(of: viewModel.entry) { _, _ in recordCurrentWord() }
         .overlay {
             if viewModel.isLoading {
                 ProgressView("Finding today’s word…")
@@ -146,7 +153,10 @@ private struct TodayView: View {
                 .buttonStyle(.plain)
                 .accessibilityLabel("Share \(viewModel.entry.displayWord)")
             }
-            Text(viewModel.entry.date, format: .dateTime.month(.wide).day().year())
+            Text(viewModel.entry.date, format: Date.FormatStyle(
+                date: .long, time: .omitted, calendar: WordEntry.pacificCalendar,
+                timeZone: WordEntry.pacificCalendar.timeZone
+            ))
                 .font(.caption.weight(.medium))
                 .textCase(.uppercase)
                 .tracking(0.8)
@@ -165,8 +175,13 @@ private struct TodayView: View {
     @MainActor
     private func refreshAndArchive() async {
         await viewModel.refresh()
+        recordCurrentWord()
+    }
+
+    @MainActor
+    private func recordCurrentWord() {
         guard viewModel.errorMessage == nil,
-              Calendar.current.isDate(viewModel.entry.date, inSameDayAs: Date()) else { return }
+              viewModel.entry.isCurrent(on: Date()) else { return }
         ArchiveStore.record(viewModel.entry, in: modelContext)
     }
 }

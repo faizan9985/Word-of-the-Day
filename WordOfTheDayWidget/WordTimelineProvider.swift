@@ -19,21 +19,19 @@ struct WordTimelineProvider: TimelineProvider {
     }
 
     func getTimeline(in context: Context, completion: @escaping (Timeline<WordTimelineEntry>) -> Void) {
-        let entry = makeEntry()
-        let pacificCalendar = WordEntry.pacificCalendar
-        let midnight = pacificCalendar.nextDate(
-            after: .now,
-            matching: DateComponents(hour: 0, minute: 0),
-            matchingPolicy: .nextTime
-        ) ?? pacificCalendar.date(byAdding: .day, value: 1, to: .now)!
-
-        completion(Timeline(entries: [entry], policy: .after(midnight)))
+        let now = Date()
+        let entry = makeEntry(at: now)
+        let midnight = WordEntry.nextPacificMidnight(after: now)
+        // Expire today's display even if WidgetKit delays requesting a new timeline.
+        let expired = WordTimelineEntry(date: midnight, wordEntry: .unavailable)
+        completion(Timeline(entries: [entry, expired], policy: .after(midnight)))
     }
 
-    private func makeEntry() -> WordTimelineEntry {
-        WordTimelineEntry(
-            date: .now,
-            wordEntry: storage.loadCurrentWord() ?? .unavailable
+    private func makeEntry(at date: Date = .now) -> WordTimelineEntry {
+        let savedEntry = storage.loadCurrentWord()
+        return WordTimelineEntry(
+            date: date,
+            wordEntry: savedEntry.flatMap { $0.isCurrent(on: date) ? $0 : nil } ?? .unavailable
         )
     }
 }
