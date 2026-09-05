@@ -44,6 +44,11 @@ struct WordEntry: Codable, Identifiable, Sendable, Equatable {
 }
 
 extension WordEntry {
+    var displayWord: String {
+        guard let firstCharacter = word.first else { return word }
+        return firstCharacter.uppercased() + word.dropFirst()
+    }
+
     static var pacificCalendar: Calendar {
         var calendar = Calendar(identifier: .gregorian)
         calendar.timeZone = TimeZone(identifier: "America/Los_Angeles")!

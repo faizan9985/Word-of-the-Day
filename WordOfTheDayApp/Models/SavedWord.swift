@@ -39,3 +39,48 @@ final class SavedWord {
         )
     }
 }
+
+@Model
+final class ArchivedWord {
+    var pacificDateKey: String?
+    var id: UUID
+    var word: String
+    var phonetic: String
+    var pronunciationAudioURL: URL?
+    var partOfSpeech: String
+    var definitionText: String
+    var exampleSentence: String
+    var synonyms: [String]?
+    var antonyms: [String]?
+    var date: Date
+
+    init(entry: WordEntry, pacificDateKey: String, date: Date) {
+        self.pacificDateKey = pacificDateKey
+        self.id = entry.id
+        self.word = entry.word
+        self.phonetic = entry.phonetic
+        self.pronunciationAudioURL = entry.pronunciationAudioURL
+        self.partOfSpeech = entry.partOfSpeech
+        self.definitionText = entry.definition
+        self.exampleSentence = entry.exampleSentence
+        self.synonyms = entry.synonyms
+        self.antonyms = entry.antonyms
+        self.date = date
+    }
+
+    var wordEntry: WordEntry {
+        WordEntry(
+            id: id,
+            word: word,
+            phonetic: phonetic,
+            pronunciationAudioURL: pronunciationAudioURL,
+            partOfSpeech: partOfSpeech,
+            definition: definitionText,
+            exampleSentence: exampleSentence,
+            synonyms: synonyms,
+            antonyms: antonyms,
+            date: date,
+            authoritativePacificDateKey: pacificDateKey
+        )
+    }
+}
