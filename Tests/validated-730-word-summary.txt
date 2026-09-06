@@ -1,0 +1,612 @@
+Status: complete
+Original bundled candidates tested live: 893
+Original bundled candidates passed: 536
+Original bundled candidates failed: 357
+Supplemental candidate pool: 1001
+Supplemental candidates tested live: 290
+Supplemental candidates passed: 194
+Supplemental candidates rejected: 96
+Total candidates tested: 1183
+Total candidates failed: 453
+Total unique validated passing words: 730
+Exactly 730 selected: YES
+New future entries written: 730
+First new date: 2026-09-06
+Last new date: 2028-09-04
+Existing entries preserved: all 25 date/value pairs through 2026-09-05
+Duplicate date/word checks: PASS — 755 unique dates and unique words across full schedule
+Date continuity: PASS — all 730 requested dates present; full schedule continuous
+words.json: added only the 194 selected supplemental passing words; preserved original 1021 entries and metadata
+Selection order: original 536 validated passes, then first 194 supplemental passes; both groups alphabetically ordered
+Validation stopped immediately at the 194th supplemental pass.
+Original validation results preserved; unchanged production service verified by SHA256.
+Supplemental live calls used exact production lookupCandidate and isComplete with the same fetchArchivedWord endpoints and Secrets.xcconfig configuration.
+Audio optional. No lexical data fabricated. No keys or response payloads included.
+Source service SHA256: 6fd4e2dad70988a8f44900ea94f94921a24a624ca9fad950e6f71471fefe3520
+
+Supplemental rejected candidates:
+abattoir: Production enrichment/completeness validation failed
+abject: Missing antonyms
+ablation: Production enrichment/completeness validation failed
+abortive: Missing MW example
+abscission: Production enrichment/completeness validation failed
+abusive: Missing antonyms
+acclimate: Missing antonyms
+acerbic: Missing antonyms
+acidulous: Missing MW example, antonyms
+acuminate: Production enrichment/completeness validation failed
+adjudicate: Missing antonyms
+adjure: Missing MW example
+adumbration: Missing antonyms
+aegis: Missing antonyms
+affectation: Missing antonyms
+affective: Production enrichment/completeness validation failed
+afferent: Missing MW example
+altercation: Missing antonyms
+amalgam: Missing antonyms
+ambidextrous: Missing antonyms
+amoral: Production enrichment/completeness validation failed
+amplify: Missing MW example
+antagonize: Missing antonyms
+anticlimax: Missing MW example
+antiquarian: Missing antonyms
+aphorism: Missing antonyms
+apolitical: Production enrichment/completeness validation failed
+apprise: Missing antonyms
+argent: Production enrichment/completeness validation failed
+arrant: Missing antonyms
+arrogate: Missing MW example, antonyms
+aspirational: Missing antonyms
+assail: Missing antonyms
+assiduity: Missing MW example, antonyms
+astound: Missing antonyms
+atomize: Missing antonyms
+audacity: Missing antonyms
+augur: Missing antonyms
+avaricious: Missing antonyms
+avenge: Missing antonyms
+avuncular: Production enrichment/completeness validation failed
+axiomatic: Missing antonyms
+azure: Production enrichment/completeness validation failed
+backslide: Missing MW example
+badger: Missing antonyms
+beatitude: Missing MW example
+bedazzle: Missing antonyms
+bellicosity: Missing MW example
+beset: Missing antonyms
+betoken: Missing MW example, antonyms
+bewail: Missing MW example
+bewilder: Missing antonyms
+bighearted: Missing MW example
+blameless: Missing written pronunciation
+blench: Missing MW example
+blunder: Missing antonyms
+blunderbuss: Missing MW example, antonyms
+blustery: Missing written pronunciation
+boggle: Missing antonyms
+boisterous: Missing MW example
+bromide: Missing MW example, antonyms
+brutish: Missing antonyms
+cadence: Missing antonyms
+calamity: Missing antonyms
+camaraderie: Missing antonyms
+caprice: Missing antonyms
+captivate: Missing antonyms
+carnage: Missing antonyms
+carousal: Missing antonyms
+casuistry: Production enrichment/completeness validation failed
+categorical: Missing antonyms
+cavort: Missing antonyms
+centrifugal: Production enrichment/completeness validation failed
+centripetal: Production enrichment/completeness validation failed
+chauvinistic: Missing antonyms
+chide: Missing antonyms
+chimera: Missing antonyms
+chiseler: Missing written pronunciation, antonyms
+commodious: Missing antonyms
+complicity: Missing antonyms
+compulsion: Missing antonyms
+concentric: Production enrichment/completeness validation failed
+concordant: Missing MW example
+conjecture: Missing antonyms
+contemptuous: Missing MW example
+contiguity: Missing MW example
+contrive: Missing antonyms
+contumely: Production enrichment/completeness validation failed
+convalesce: Missing antonyms
+convoke: Missing MW example, antonyms
+corrosive: Missing antonyms
+courteous: Missing MW example
+cupidity: Missing antonyms
+curmudgeon: Missing antonyms
+custodial: Production enrichment/completeness validation failed
+debacle: Missing MW example
+
+Original bundled rejected candidates:
+abrasive: Production enrichment/completeness validation failed
+abrogate: Production enrichment/completeness validation failed
+accolade: Production enrichment/completeness validation failed
+acuity: Production enrichment/completeness validation failed
+acumen: Production enrichment/completeness validation failed
+admonish: Production enrichment/completeness validation failed
+adulation: Production enrichment/completeness validation failed
+adumbrate: Production enrichment/completeness validation failed
+alacrity: Production enrichment/completeness validation failed
+ambivalence: Production enrichment/completeness validation failed
+ambulatory: Production enrichment/completeness validation failed
+anarchy: Production enrichment/completeness validation failed
+anecdote: Production enrichment/completeness validation failed
+animosity: Production enrichment/completeness validation failed
+anthology: Production enrichment/completeness validation failed
+antiquated: Production enrichment/completeness validation failed
+antithesis: Production enrichment/completeness validation failed
+apostate: Production enrichment/completeness validation failed
+apotheosis: Production enrichment/completeness validation failed
+artisan: Production enrichment/completeness validation failed
+avarice: Production enrichment/completeness validation failed
+banality: Production enrichment/completeness validation failed
+bard: Production enrichment/completeness validation failed
+bastion: Production enrichment/completeness validation failed
+befuddle: Production enrichment/completeness validation failed
+begrudge: Production enrichment/completeness validation failed
+beleaguer: Production enrichment/completeness validation failed
+bellicose: Production enrichment/completeness validation failed
+bequeath: Production enrichment/completeness validation failed
+berate: Production enrichment/completeness validation failed
+bestial: Production enrichment/completeness validation failed
+bilk: Production enrichment/completeness validation failed
+blatant: Production enrichment/completeness validation failed
+bolster: Production enrichment/completeness validation failed
+bombast: Production enrichment/completeness validation failed
+boorish: Production enrichment/completeness validation failed
+brevity: Production enrichment/completeness validation failed
+bristle: Production enrichment/completeness validation failed
+broach: Production enrichment/completeness validation failed
+bucolic: Production enrichment/completeness validation failed
+bureaucracy: Production enrichment/completeness validation failed
+burnish: Production enrichment/completeness validation failed
+buttress: Production enrichment/completeness validation failed
+cajole: Production enrichment/completeness validation failed
+calumny: Production enrichment/completeness validation failed
+capacious: Production enrichment/completeness validation failed
+catharsis: Production enrichment/completeness validation failed
+caustic: Production enrichment/completeness validation failed
+cavalcade: Production enrichment/completeness validation failed
+censorious: Production enrichment/completeness validation failed
+charlatan: Production enrichment/completeness validation failed
+chicanery: Production enrichment/completeness validation failed
+chronicler: Production enrichment/completeness validation failed
+churlish: Production enrichment/completeness validation failed
+circumlocution: Production enrichment/completeness validation failed
+clairvoyant: Production enrichment/completeness validation failed
+clemency: Production enrichment/completeness validation failed
+clientele: Production enrichment/completeness validation failed
+coercion: Production enrichment/completeness validation failed
+cogitate: Production enrichment/completeness validation failed
+collusion: Production enrichment/completeness validation failed
+commandeer: Production enrichment/completeness validation failed
+compunction: Production enrichment/completeness validation failed
+concomitant: Production enrichment/completeness validation failed
+condescend: Production enrichment/completeness validation failed
+condone: Production enrichment/completeness validation failed
+conundrum: Production enrichment/completeness validation failed
+cower: Production enrichment/completeness validation failed
+debility: Production enrichment/completeness validation failed
+delineation: Production enrichment/completeness validation failed
+demagogue: Production enrichment/completeness validation failed
+deride: Production enrichment/completeness validation failed
+desecrate: Production enrichment/completeness validation failed
+desecration: Production enrichment/completeness validation failed
+destitution: Production enrichment/completeness validation failed
+diatribe: Production enrichment/completeness validation failed
+dichotomy: Production enrichment/completeness validation failed
+didactic: Production enrichment/completeness validation failed
+diffident: Production enrichment/completeness validation failed
+digress: Production enrichment/completeness validation failed
+dirge: Production enrichment/completeness validation failed
+disabuse: Production enrichment/completeness validation failed
+disapprobation: Production enrichment/completeness validation failed
+discordancy: Production enrichment/completeness validation failed
+discrepancy: Production enrichment/completeness validation failed
+discursive: Production enrichment/completeness validation failed
+discursiveness: Production enrichment/completeness validation failed
+dissemble: Production enrichment/completeness validation failed
+diurnal: Production enrichment/completeness validation failed
+drawl: Production enrichment/completeness validation failed
+drivel: Production enrichment/completeness validation failed
+eccentric: Production enrichment/completeness validation failed
+edifice: Production enrichment/completeness validation failed
+efface: Production enrichment/completeness validation failed
+effrontery: Production enrichment/completeness validation failed
+egalitarianism: Production enrichment/completeness validation failed
+egregious: Production enrichment/completeness validation failed
+egress: Production enrichment/completeness validation failed
+elusive: Production enrichment/completeness validation failed
+emancipate: Production enrichment/completeness validation failed
+embezzle: Production enrichment/completeness validation failed
+embroil: Production enrichment/completeness validation failed
+emulate: Production enrichment/completeness validation failed
+encomium: Production enrichment/completeness validation failed
+enfranchise: Production enrichment/completeness validation failed
+enigma: Production enrichment/completeness validation failed
+enigmatic: Production enrichment/completeness validation failed
+enshroud: Production enrichment/completeness validation failed
+enunciation: Production enrichment/completeness validation failed
+envenom: Production enrichment/completeness validation failed
+epistle: Production enrichment/completeness validation failed
+epistolary: Production enrichment/completeness validation failed
+equivocate: Production enrichment/completeness validation failed
+err: Production enrichment/completeness validation failed
+espouse: Production enrichment/completeness validation failed
+etymology: Production enrichment/completeness validation failed
+eulogy: Production enrichment/completeness validation failed
+euphony: Production enrichment/completeness validation failed
+exculpate: Production enrichment/completeness validation failed
+exegesis: Production enrichment/completeness validation failed
+exemplary: Production enrichment/completeness validation failed
+exemplify: Production enrichment/completeness validation failed
+exhaustive: Production enrichment/completeness validation failed
+exhort: Production enrichment/completeness validation failed
+expedient: Production enrichment/completeness validation failed
+expedite: Production enrichment/completeness validation failed
+exposition: Production enrichment/completeness validation failed
+expurgate: Production enrichment/completeness validation failed
+extol: Production enrichment/completeness validation failed
+extradite: Production enrichment/completeness validation failed
+extrapolate: Production enrichment/completeness validation failed
+fanaticism: Production enrichment/completeness validation failed
+fickle: Production enrichment/completeness validation failed
+finesse: Production enrichment/completeness validation failed
+flagrant: Production enrichment/completeness validation failed
+flaunt: Production enrichment/completeness validation failed
+flippant: Production enrichment/completeness validation failed
+flout: Production enrichment/completeness validation failed
+forensic: Production enrichment/completeness validation failed
+fortitude: Production enrichment/completeness validation failed
+frugal: Production enrichment/completeness validation failed
+furrow: Production enrichment/completeness validation failed
+gambol: Production enrichment/completeness validation failed
+garble: Production enrichment/completeness validation failed
+gaunt: Production enrichment/completeness validation failed
+germinal: Production enrichment/completeness validation failed
+grate: Production enrichment/completeness validation failed
+gratis: Production enrichment/completeness validation failed
+gullible: Production enrichment/completeness validation failed
+harangue: Production enrichment/completeness validation failed
+iconoclast: Production enrichment/completeness validation failed
+idiosyncrasy: Production enrichment/completeness validation failed
+impious: Production enrichment/completeness validation failed
+incantation: Production enrichment/completeness validation failed
+indefatigable: Production enrichment/completeness validation failed
+indolence: Production enrichment/completeness validation failed
+inebriation: Production enrichment/completeness validation failed
+ingrate: Production enrichment/completeness validation failed
+insentient: Production enrichment/completeness validation failed
+insouciant: Production enrichment/completeness validation failed
+instigate: Production enrichment/completeness validation failed
+instigator: Production enrichment/completeness validation failed
+insurgent: Production enrichment/completeness validation failed
+intransigence: Production enrichment/completeness validation failed
+inveterate: Production enrichment/completeness validation failed
+inviolable: Production enrichment/completeness validation failed
+irascible: Production enrichment/completeness validation failed
+ire: Production enrichment/completeness validation failed
+irksome: Production enrichment/completeness validation failed
+itinerant: Production enrichment/completeness validation failed
+jargon: Production enrichment/completeness validation failed
+jaunt: Production enrichment/completeness validation failed
+jingoistic: Production enrichment/completeness validation failed
+jocular: Production enrichment/completeness validation failed
+jollity: Production enrichment/completeness validation failed
+jubilant: Production enrichment/completeness validation failed
+juxtapose: Production enrichment/completeness validation failed
+labyrinth: Production enrichment/completeness validation failed
+lachrymose: Production enrichment/completeness validation failed
+laconic: Production enrichment/completeness validation failed
+lampoon: Production enrichment/completeness validation failed
+lance: Production enrichment/completeness validation failed
+languish: Production enrichment/completeness validation failed
+larceny: Production enrichment/completeness validation failed
+longevity: Production enrichment/completeness validation failed
+ludicrous: Production enrichment/completeness validation failed
+machinations: Production enrichment/completeness validation failed
+maelstrom: Production enrichment/completeness validation failed
+magnate: Production enrichment/completeness validation failed
+malefactor: Production enrichment/completeness validation failed
+malleable: Production enrichment/completeness validation failed
+manipulatable: Production enrichment/completeness validation failed
+martinet: Production enrichment/completeness validation failed
+maverick: Production enrichment/completeness validation failed
+meander: Production enrichment/completeness validation failed
+menagerie: Production enrichment/completeness validation failed
+mercenary: Production enrichment/completeness validation failed
+milieu: Production enrichment/completeness validation failed
+misanthrope: Production enrichment/completeness validation failed
+misnomer: Production enrichment/completeness validation failed
+modicum: Production enrichment/completeness validation failed
+moratorium: Production enrichment/completeness validation failed
+moribund: Production enrichment/completeness validation failed
+mutinous: Production enrichment/completeness validation failed
+neologism: Production enrichment/completeness validation failed
+nomadic: Production enrichment/completeness validation failed
+nondescript: Production enrichment/completeness validation failed
+nonentity: Production enrichment/completeness validation failed
+nonplussed: Production enrichment/completeness validation failed
+nullify: Production enrichment/completeness validation failed
+nuzzle: Production enrichment/completeness validation failed
+obliterate: Production enrichment/completeness validation failed
+obsolete: Production enrichment/completeness validation failed
+obviate: Production enrichment/completeness validation failed
+ogle: Production enrichment/completeness validation failed
+omnipotent: Production enrichment/completeness validation failed
+overwrought: Production enrichment/completeness validation failed
+palisade: Production enrichment/completeness validation failed
+panacea: Production enrichment/completeness validation failed
+paradigm: Production enrichment/completeness validation failed
+paradox: Production enrichment/completeness validation failed
+paragon: Production enrichment/completeness validation failed
+pariah: Production enrichment/completeness validation failed
+parody: Production enrichment/completeness validation failed
+parry: Production enrichment/completeness validation failed
+parsimonious: Production enrichment/completeness validation failed
+pathos: Production enrichment/completeness validation failed
+patronize: Production enrichment/completeness validation failed
+paucity: Production enrichment/completeness validation failed
+pedant: Production enrichment/completeness validation failed
+peerless: Production enrichment/completeness validation failed
+pejorative: Production enrichment/completeness validation failed
+penchant: Production enrichment/completeness validation failed
+penury: Production enrichment/completeness validation failed
+perfidious: Production enrichment/completeness validation failed
+perfidy: Production enrichment/completeness validation failed
+peripatetic: Production enrichment/completeness validation failed
+perjury: Production enrichment/completeness validation failed
+perpetuity: Production enrichment/completeness validation failed
+personable: Production enrichment/completeness validation failed
+perspicacious: Production enrichment/completeness validation failed
+perspicacity: Production enrichment/completeness validation failed
+peruse: Production enrichment/completeness validation failed
+petulant: Production enrichment/completeness validation failed
+philanthropy: Production enrichment/completeness validation failed
+phlegmatic: Production enrichment/completeness validation failed
+pillage: Production enrichment/completeness validation failed
+pinnacle: Production enrichment/completeness validation failed
+pivotal: Production enrichment/completeness validation failed
+placate: Production enrichment/completeness validation failed
+placebo: Production enrichment/completeness validation failed
+platitude: Production enrichment/completeness validation failed
+polemical: Production enrichment/completeness validation failed
+pontificate: Production enrichment/completeness validation failed
+portent: Production enrichment/completeness validation failed
+poseur: Production enrichment/completeness validation failed
+posterity: Production enrichment/completeness validation failed
+posthumous: Production enrichment/completeness validation failed
+postulate: Production enrichment/completeness validation failed
+precept: Production enrichment/completeness validation failed
+precipice: Production enrichment/completeness validation failed
+preclude: Production enrichment/completeness validation failed
+predicament: Production enrichment/completeness validation failed
+preeminent: Production enrichment/completeness validation failed
+prerogative: Production enrichment/completeness validation failed
+prescient: Production enrichment/completeness validation failed
+presentiment: Production enrichment/completeness validation failed
+prevaricate: Production enrichment/completeness validation failed
+proclivity: Production enrichment/completeness validation failed
+procrastinate: Production enrichment/completeness validation failed
+prodigious: Production enrichment/completeness validation failed
+profane: Production enrichment/completeness validation failed
+profanity: Production enrichment/completeness validation failed
+profundity: Production enrichment/completeness validation failed
+proscribe: Production enrichment/completeness validation failed
+prosody: Production enrichment/completeness validation failed
+protagonist: Production enrichment/completeness validation failed
+protean: Production enrichment/completeness validation failed
+punctilious: Production enrichment/completeness validation failed
+purloin: Production enrichment/completeness validation failed
+pusillanimous: Production enrichment/completeness validation failed
+quaff: Production enrichment/completeness validation failed
+quagmire: Production enrichment/completeness validation failed
+quandary: Production enrichment/completeness validation failed
+quirk: Production enrichment/completeness validation failed
+rancor: Production enrichment/completeness validation failed
+rebuttal: Production enrichment/completeness validation failed
+recant: Production enrichment/completeness validation failed
+recapitulate: Production enrichment/completeness validation failed
+receptacle: Production enrichment/completeness validation failed
+recluse: Production enrichment/completeness validation failed
+recuperate: Production enrichment/completeness validation failed
+redress: Production enrichment/completeness validation failed
+redundant: Production enrichment/completeness validation failed
+regale: Production enrichment/completeness validation failed
+relegate: Production enrichment/completeness validation failed
+remuneration: Production enrichment/completeness validation failed
+reprieve: Production enrichment/completeness validation failed
+resonant: Production enrichment/completeness validation failed
+retraction: Production enrichment/completeness validation failed
+revere: Production enrichment/completeness validation failed
+rife: Production enrichment/completeness validation failed
+ruminate: Production enrichment/completeness validation failed
+ruse: Production enrichment/completeness validation failed
+sallow: Production enrichment/completeness validation failed
+sanguinary: Production enrichment/completeness validation failed
+sardonic: Production enrichment/completeness validation failed
+savant: Production enrichment/completeness validation failed
+scapegoat: Production enrichment/completeness validation failed
+scrutinize: Production enrichment/completeness validation failed
+scuttle: Production enrichment/completeness validation failed
+sensuous: Production enrichment/completeness validation failed
+sentinel: Production enrichment/completeness validation failed
+servile: Production enrichment/completeness validation failed
+solicit: Production enrichment/completeness validation failed
+soothsayer: Production enrichment/completeness validation failed
+sophomoric: Production enrichment/completeness validation failed
+sparse: Production enrichment/completeness validation failed
+stanza: Production enrichment/completeness validation failed
+stolid: Production enrichment/completeness validation failed
+stratagem: Production enrichment/completeness validation failed
+strut: Production enrichment/completeness validation failed
+subterfuge: Production enrichment/completeness validation failed
+sybarite: Production enrichment/completeness validation failed
+taciturn: Production enrichment/completeness validation failed
+tactile: Production enrichment/completeness validation failed
+talisman: Production enrichment/completeness validation failed
+tedium: Production enrichment/completeness validation failed
+temerity: Production enrichment/completeness validation failed
+thwart: Production enrichment/completeness validation failed
+tirade: Production enrichment/completeness validation failed
+tome: Production enrichment/completeness validation failed
+torpor: Production enrichment/completeness validation failed
+totter: Production enrichment/completeness validation failed
+traverse: Production enrichment/completeness validation failed
+trepidation: Production enrichment/completeness validation failed
+trinket: Production enrichment/completeness validation failed
+tumult: Production enrichment/completeness validation failed
+turpitude: Production enrichment/completeness validation failed
+unscathed: Production enrichment/completeness validation failed
+upbraid: Production enrichment/completeness validation failed
+usurp: Production enrichment/completeness validation failed
+vacillate: Production enrichment/completeness validation failed
+vagrant: Production enrichment/completeness validation failed
+vehemence: Production enrichment/completeness validation failed
+venerate: Production enrichment/completeness validation failed
+vestigial: Production enrichment/completeness validation failed
+vicissitude: Production enrichment/completeness validation failed
+vignette: Production enrichment/completeness validation failed
+vilification: Production enrichment/completeness validation failed
+vilify: Production enrichment/completeness validation failed
+vitriolic: Production enrichment/completeness validation failed
+vivacity: Production enrichment/completeness validation failed
+vociferous: Production enrichment/completeness validation failed
+voluble: Production enrichment/completeness validation failed
+waylay: Production enrichment/completeness validation failed
+whimsical: Production enrichment/completeness validation failed
+
+Original exclusions before live validation:
+abasement: Already present in existing schedule
+aberration: Already present in existing schedule
+abeyance: Already present in existing schedule
+abhor: Already present in existing schedule
+abjure: Already present in existing schedule
+advocate: Too common/basic for requested curation
+alibi: Too common/basic for requested curation
+ameliorate: Already present in existing schedule
+annex: Too common/basic for requested curation
+assiduous: Already present in existing schedule
+billowing: Obvious inflected form
+blighted: Obvious inflected form
+capricious: Already present in existing schedule
+carping: Obvious inflected form
+chastises: Obvious inflected form
+circumspect: Already present in existing schedule
+collage: Too common/basic for requested curation
+condoning: Obvious inflected form
+contemporary: Too common/basic for requested curation
+conventional: Too common/basic for requested curation
+credible: Too common/basic for requested curation
+cringe: Too common/basic for requested curation
+debunking: Obvious inflected form
+decoy: Too common/basic for requested curation
+deleterious: Already present in existing schedule
+deliberate: Too common/basic for requested curation
+devoured: Obvious inflected form
+dilemma: Too common/basic for requested curation
+diligent: Too common/basic for requested curation
+disseminating: Obvious inflected form
+divert: Too common/basic for requested curation
+dolt: Unsuitable derogatory or easily misread vocabulary
+dotard: Unsuitable derogatory or easily misread vocabulary
+drone: Too common/basic for requested curation
+dynamic: Too common/basic for requested curation
+emerge: Too common/basic for requested curation
+endorse: Too common/basic for requested curation
+endurance: Too common/basic for requested curation
+enduring: Obvious inflected form
+enhance: Too common/basic for requested curation
+ephemeral: Already present in existing schedule
+epitomized: Obvious inflected form
+equanimity: Already present in existing schedule
+evacuate: Too common/basic for requested curation
+exasperated: Obvious inflected form
+exonerates: Obvious inflected form
+fastidious: Already present in existing schedule
+flustered: Obvious inflected form
+genre: Too common/basic for requested curation
+gibbering: Obvious inflected form
+gravity: Too common/basic for requested curation
+hamper: Too common/basic for requested curation
+harbingers: Obvious inflected form
+hasten: Too common/basic for requested curation
+heed: Too common/basic for requested curation
+hinder: Too common/basic for requested curation
+illuminate: Too common/basic for requested curation
+inclination: Too common/basic for requested curation
+indifferent: Too common/basic for requested curation
+ineffable: Already present in existing schedule
+inevitable: Too common/basic for requested curation
+infer: Too common/basic for requested curation
+innovate: Too common/basic for requested curation
+intransigent: Already present in existing schedule
+irrational: Too common/basic for requested curation
+jeopardize: Too common/basic for requested curation
+kindle: Too common/basic for requested curation
+largess: Prefer another bundled lexical form or spelling
+legend: Too common/basic for requested curation
+lukewarm: Too common/basic for requested curation
+lummox: Unsuitable derogatory or easily misread vocabulary
+magnanimous: Already present in existing schedule
+marred: Obvious inflected form
+mellow: Too common/basic for requested curation
+mendacious: Already present in existing schedule
+merge: Too common/basic for requested curation
+misogynist: Unsuitable derogatory or easily misread vocabulary
+misrepresentation: Too common/basic for requested curation
+negligence: Too common/basic for requested curation
+niggardly: Unsuitable derogatory or easily misread vocabulary
+nostalgia: Too common/basic for requested curation
+novel: Too common/basic for requested curation
+novice: Too common/basic for requested curation
+obdurate: Already present in existing schedule
+objective: Too common/basic for requested curation
+obscured: Obvious inflected form
+obsequious: Already present in existing schedule
+obsession: Too common/basic for requested curation
+patron: Too common/basic for requested curation
+pellucid: Already present in existing schedule
+perfunctory: Already present in existing schedule
+perpetuated: Obvious inflected form
+phenomenon: Too common/basic for requested curation
+plagiarism: Too common/basic for requested curation
+predecessor: Too common/basic for requested curation
+proponents: Obvious inflected form
+protocol: Too common/basic for requested curation
+quarry: Too common/basic for requested curation
+ramble: Too common/basic for requested curation
+ramifications: Obvious inflected form
+rant: Too common/basic for requested curation
+recalcitrant: Already present in existing schedule
+remorse: Too common/basic for requested curation
+resolution: Too common/basic for requested curation
+retention: Too common/basic for requested curation
+riddled: Obvious inflected form
+robust: Too common/basic for requested curation
+sagacious: Already present in existing schedule
+sanguine: Already present in existing schedule
+skeptical: Too common/basic for requested curation
+sluggard: Unsuitable derogatory or easily misread vocabulary
+speckled: Obvious inflected form
+stereotype: Too common/basic for requested curation
+stupefying: Obvious inflected form
+subtle: Too common/basic for requested curation
+suspect: Too common/basic for requested curation
+temper: Too common/basic for requested curation
+tentative: Too common/basic for requested curation
+transcribe: Too common/basic for requested curation
+trenchant: Already present in existing schedule
+trivial: Too common/basic for requested curation
+undermined: Obvious inflected form
+underscore: Too common/basic for requested curation
+unprecedented: Too common/basic for requested curation
+vital: Too common/basic for requested curation
+wary: Too common/basic for requested curation
+wax: Too common/basic for requested curation
+weighty: Too common/basic for requested curation
