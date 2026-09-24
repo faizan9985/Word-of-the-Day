@@ -8,7 +8,7 @@ import UIKit
 struct ContentView: View {
     @Environment(\.modelContext) private var modelContext
     @Environment(\.scenePhase) private var scenePhase
-    @StateObject private var viewModel = WordViewModel()
+    @StateObject private var viewModel = WordViewModel.shared
     @State private var selectedTab: AppTab = .today
 
     var body: some View {

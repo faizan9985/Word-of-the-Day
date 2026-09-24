@@ -16,10 +16,18 @@ struct WordStorage: Sendable {
         self.suiteName = suiteName
     }
 
-    func loadCurrentWord() -> WordEntry? {
+    func loadCurrentWord() -> WordEntry? { load(key: cacheKey) }
+
+    func loadPrefetchedWord() -> WordEntry? { load(key: "prefetchedDailyWord") }
+
+    func savePrefetchedWord(_ entry: WordEntry) throws {
+        try save(entry, key: "prefetchedDailyWord")
+    }
+
+    private func load(key: String) -> WordEntry? {
         guard
             let defaults = UserDefaults(suiteName: suiteName),
-            let data = defaults.data(forKey: cacheKey)
+            let data = defaults.data(forKey: key)
         else {
             return nil
         }
@@ -27,13 +35,15 @@ struct WordStorage: Sendable {
         return try? JSONDecoder().decode(WordEntry.self, from: data)
     }
 
-    func saveCurrentWord(_ entry: WordEntry) throws {
+    func saveCurrentWord(_ entry: WordEntry) throws { try save(entry, key: cacheKey) }
+
+    private func save(_ entry: WordEntry, key: String) throws {
         guard let defaults = UserDefaults(suiteName: suiteName) else {
             throw StorageError.appGroupUnavailable(suiteName)
         }
 
         let data = try JSONEncoder().encode(entry)
-        defaults.set(data, forKey: cacheKey)
+        defaults.set(data, forKey: key)
     }
 }
 

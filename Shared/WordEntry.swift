@@ -49,6 +49,26 @@ extension WordEntry {
         return firstCharacter.uppercased() + word.dropFirst()
     }
 
+    /// Identical to the production Merriam-Webster completeness gate; audio is optional.
+    var isComplete: Bool {
+        !definition.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty
+            && !phonetic.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty
+            && !exampleSentence.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty
+            && !(synonyms ?? []).isEmpty
+            && !(antonyms ?? []).isEmpty
+    }
+
+    func isValid(on date: Date) -> Bool { isComplete && isCurrent(on: date) }
+
+    /// The lexical payload is unchanged; date records the scheduled day, not fetch time.
+    func scheduled(on date: Date) -> WordEntry {
+        WordEntry(id: id, word: word, phonetic: phonetic,
+                  pronunciationAudioURL: pronunciationAudioURL, partOfSpeech: partOfSpeech,
+                  definition: definition, exampleSentence: exampleSentence,
+                  synonyms: synonyms, antonyms: antonyms, date: date,
+                  authoritativePacificDateKey: authoritativePacificDateKey)
+    }
+
     static var pacificCalendar: Calendar {
         var calendar = Calendar(identifier: .gregorian)
         calendar.timeZone = TimeZone(identifier: "America/Los_Angeles")!

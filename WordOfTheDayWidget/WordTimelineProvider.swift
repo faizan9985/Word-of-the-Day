@@ -8,7 +8,7 @@ struct WordTimelineEntry: TimelineEntry {
 }
 
 struct WordTimelineProvider: TimelineProvider {
-    private let storage = WordStorage()
+    var storage = WordStorage()
 
     func placeholder(in context: Context) -> WordTimelineEntry {
         WordTimelineEntry(date: .now, wordEntry: .fallback)
@@ -20,18 +20,23 @@ struct WordTimelineProvider: TimelineProvider {
 
     func getTimeline(in context: Context, completion: @escaping (Timeline<WordTimelineEntry>) -> Void) {
         let now = Date()
-        let entry = makeEntry(at: now)
+        completion(Timeline(entries: timelineEntries(at: now),
+                            policy: .after(WordEntry.nextPacificMidnight(after: now))))
+    }
+
+    // Internal for deterministic checks without a WidgetKit Context.
+    func timelineEntries(at now: Date) -> [WordTimelineEntry] {
+        let current = storage.loadCurrentWord()
+        let prefetched = storage.loadPrefetchedWord()
         let midnight = WordEntry.nextPacificMidnight(after: now)
-        // Expire today's display even if WidgetKit delays requesting a new timeline.
-        let expired = WordTimelineEntry(date: midnight, wordEntry: .unavailable)
-        completion(Timeline(entries: [entry, expired], policy: .after(midnight)))
+        let followingMidnight = WordEntry.nextPacificMidnight(after: midnight)
+        return [now, midnight, followingMidnight].map { date in
+            WordTimelineEntry(date: date, wordEntry:
+                [current, prefetched].compactMap { $0 }.first { $0.isValid(on: date) } ?? .unavailable)
+        }
     }
 
     private func makeEntry(at date: Date = .now) -> WordTimelineEntry {
-        let savedEntry = storage.loadCurrentWord()
-        return WordTimelineEntry(
-            date: date,
-            wordEntry: savedEntry.flatMap { $0.isCurrent(on: date) ? $0 : nil } ?? .unavailable
-        )
+        timelineEntries(at: date)[0]
     }
 }
