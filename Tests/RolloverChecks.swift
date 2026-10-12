@@ -3,9 +3,12 @@
 // In-memory storage isolates these checks from app-group UserDefaults and SwiftData.
 import Foundation
 
-@MainActor
-final class WordStorage {
+final class WordStorage: @unchecked Sendable {
     nonisolated init() {}
+    var prefetched: WordEntry?
+    var prefetchWrites: [WordEntry] = []
+    func loadPrefetchedWord() -> WordEntry? { prefetched }
+    func savePrefetchedWord(_ entry: WordEntry) throws { prefetched = entry; prefetchWrites.append(entry) }
     var saved: WordEntry?
     var writes: [WordEntry] = []
     func loadCurrentWord() -> WordEntry? { saved }
@@ -16,6 +19,10 @@ final class WordStorage {
 final class MockService: WordAPIProviding {
     var dailyCalls = 0
     var audioCalls = 0
+    var scheduleCalls = 0
+    var enrichmentCalls = 0
+    var schedule: [String: String] = [:]
+    var enrich: (String, String) async throws -> WordEntry = { _, _ in fatalError("Unexpected enrichment") }
     var fetch: () async throws -> WordEntry = { fatalError("Unexpected hosted request") }
     var audio: () async throws -> URL? = { nil }
     func fetchDailyWord() async throws -> WordEntry {
@@ -26,9 +33,10 @@ final class MockService: WordAPIProviding {
         audioCalls += 1
         return try await audio()
     }
-    func fetchDailySchedule() async throws -> [String: String] { fatalError("Unexpected archive request") }
+    func fetchDailySchedule() async throws -> [String: String] { scheduleCalls += 1; return schedule }
     func fetchArchivedWord(_ word: String, pacificDateKey: String) async throws -> WordEntry {
-        fatalError("Unexpected archive request")
+        enrichmentCalls += 1
+        return try await enrich(word, pacificDateKey)
     }
 }
 
@@ -118,6 +126,85 @@ struct RolloverChecks {
         await stale.refresh()
         assert(staleService.dailyCalls == 3 && staleStorage.writes.isEmpty && stale.errorMessage != nil)
         print("PASS: stale-result retries are bounded and never persisted")
+
+        let prefetchStorage = WordStorage()
+        prefetchStorage.saved = word(before)
+        let prefetchService = MockService()
+        let midnight = WordEntry.nextPacificMidnight(after: before)
+        let tomorrowKey = WordEntry.pacificDateKey(for: midnight)
+        prefetchService.schedule = [tomorrowKey: "scheduled"]
+        prefetchService.enrich = { value, key in
+            assert(value == "scheduled" && key == tomorrowKey)
+            // Production enrichment records fetch time, which must be normalized to its target day.
+            return word(midnight).scheduled(on: before)
+        }
+        now = before
+        let prefetchModel = WordViewModel(service: prefetchService, storage: prefetchStorage, now: { now })
+        await prefetchModel.refresh()
+        assert(prefetchStorage.saved!.isValid(on: before) && prefetchStorage.writes.isEmpty)
+        assert(prefetchStorage.prefetched!.isValid(on: midnight))
+        await prefetchModel.refresh()
+        assert(prefetchService.scheduleCalls == 1 && prefetchService.enrichmentCalls == 1)
+        print("PASS: authoritative tomorrow prefetch is separate; same-day refresh avoids repeated requests")
+
+        let provider = WordTimelineProvider(storage: prefetchStorage)
+        let timeline = provider.timelineEntries(at: before)
+        assert(timeline.count == 3 && timeline[0].wordEntry.isValid(on: before))
+        assert(timeline[1].date == midnight && timeline[1].wordEntry.authoritativePacificDateKey == tomorrowKey)
+        assert(timeline[1].wordEntry.isValid(on: midnight) && timeline[2].wordEntry == .unavailable)
+        now = after
+        await prefetchModel.refresh()
+        assert(prefetchService.dailyCalls == 0 && prefetchStorage.saved!.isValid(on: after))
+        assert(prefetchStorage.writes.count == 1)
+        assert(prefetchService.scheduleCalls == 2) // Starts the following day's prefetch.
+        print("PASS: exact midnight timeline and foreground promotion without daily refetch")
+
+        for invalid in [nil, word(before), WordEntry.unavailable.scheduled(on: midnight)] as [WordEntry?] {
+            prefetchStorage.prefetched = invalid
+            prefetchStorage.saved = word(before)
+            assert(provider.timelineEntries(at: before)[1].wordEntry == .unavailable)
+            assert(provider.timelineEntries(at: after)[0].wordEntry == .unavailable)
+        }
+        prefetchStorage.prefetched = WordEntry(word: "scheduled", phonetic: "p", partOfSpeech: "noun",
+            definition: "d", exampleSentence: "e", synonyms: ["s"], antonyms: [],
+            date: midnight, authoritativePacificDateKey: tomorrowKey)
+        assert(provider.timelineEntries(at: before)[1].wordEntry == .unavailable)
+        // Complete payload and target-day timestamp, but the wrong authoritative key.
+        prefetchStorage.prefetched = word(before).scheduled(on: midnight)
+        assert(provider.timelineEntries(at: before)[1].wordEntry == .unavailable)
+        print("PASS: missing, incomplete and wrong-date prefetched values are unavailable")
+
+        for start in ["2026-03-08T08:00:00Z", "2026-11-01T07:00:00Z"] {
+            let day = date(start)
+            let next = WordEntry.nextPacificMidnight(after: day)
+            prefetchStorage.saved = word(day)
+            prefetchStorage.prefetched = word(next)
+            let entries = provider.timelineEntries(at: day)
+            assert(entries[1].date == next)
+            assert(entries[1].wordEntry.authoritativePacificDateKey == WordEntry.pacificDateKey(for: next))
+        }
+        print("PASS: timeline uses exact Pacific keys across spring and fall DST")
+
+        for wrongKey in [false, true] {
+            let store = WordStorage()
+            store.saved = word(before)
+            let api = MockService()
+            api.schedule = [tomorrowKey: "scheduled"]
+            now = before
+            api.enrich = { _, key in
+                assert(key == tomorrowKey)
+                now = after
+                return word(wrongKey ? before : midnight)
+            }
+            api.fetch = { word(after) }
+            let vm = WordViewModel(service: api, storage: store, now: { now })
+            await vm.refresh()
+            assert(store.prefetchWrites.count == (wrongKey ? 0 : 1))
+            assert(store.prefetchWrites.allSatisfy { $0.authoritativePacificDateKey == tomorrowKey && $0.isValid(on: after) })
+            assert(store.saved!.isValid(on: after))
+            assert(api.dailyCalls == (wrongKey ? 1 : 0))
+        }
+        print("PASS: prefetch crossing midnight preserves requested date; mismatched result never persists")
 
         var isWaiting = false
         let task = Task {

@@ -125,7 +125,7 @@ struct WordAPIService: WordAPIProviding {
             dictionaryKey: dictionaryKey,
             thesaurusKey: thesaurusKey,
             authoritativeDateKey: pacificDateKey
-        ), isComplete(entry) else {
+        ), entry.isComplete else {
             throw APIError.incompleteHostedWord(word, pacificDateKey)
         }
 
@@ -225,14 +225,6 @@ struct WordAPIService: WordAPIProviding {
             antonyms: antonyms,
             authoritativePacificDateKey: authoritativeDateKey
         )
-    }
-
-    private func isComplete(_ entry: WordEntry) -> Bool {
-        !entry.definition.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty
-            && !entry.phonetic.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty
-            && !entry.exampleSentence.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty
-            && !(entry.synonyms ?? []).isEmpty
-            && !(entry.antonyms ?? []).isEmpty
     }
 
     private func makePronunciationAudioURL(for audioIdentifier: String) -> URL? {

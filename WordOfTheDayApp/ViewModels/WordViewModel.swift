@@ -6,6 +6,7 @@ import WidgetKit
 
 @MainActor
 final class WordViewModel: ObservableObject {
+    static let shared = WordViewModel()
     @Published private(set) var entry: WordEntry
     @Published private(set) var isLoading = false
     @Published private(set) var errorMessage: String?
@@ -24,7 +25,7 @@ final class WordViewModel: ObservableObject {
         self.storage = storage
         self.now = now
         if let savedEntry = storage.loadCurrentWord(),
-           savedEntry.isCurrent(on: now()) {
+           savedEntry.isValid(on: now()) {
             self.entry = savedEntry
         } else {
             self.entry = .unavailable
@@ -60,11 +61,55 @@ final class WordViewModel: ObservableObject {
         errorMessage = nil
         defer { isLoading = false }
 
+        // Keep foreground and background work under the same in-flight guard.
+        for _ in 0..<3 {
+            await refreshCurrent()
+            guard !Task.isCancelled, entry.isValid(on: now()) else { return }
+            let dayKey = WordEntry.pacificDateKey(for: now())
+            await prefetchTomorrow()
+            if dayKey == WordEntry.pacificDateKey(for: now()) { return }
+        }
+    }
+
+    private func prefetchTomorrow() async {
+        let targetDate = WordEntry.nextPacificMidnight(after: now())
+        let targetKey = WordEntry.pacificDateKey(for: targetDate)
+        guard storage.loadPrefetchedWord()?.isValid(on: targetDate) != true else { return }
+        do {
+            let schedule = try await service.fetchDailySchedule()
+            try Task.checkCancellation()
+            guard let word = schedule[targetKey]?.trimmingCharacters(in: .whitespacesAndNewlines),
+                  !word.isEmpty else { return }
+            let result = try await service.fetchArchivedWord(word, pacificDateKey: targetKey)
+            try Task.checkCancellation()
+            // Never relabel a result using the clock at completion. If midnight passed,
+            // this exact requested day can be promoted by the next refresh iteration.
+            let date = now()
+            guard result.authoritativePacificDateKey == targetKey, result.isComplete,
+                  targetKey == WordEntry.pacificDateKey(for: date)
+                    || targetKey == WordEntry.pacificDateKey(for: WordEntry.nextPacificMidnight(after: date))
+            else { return }
+            try storage.savePrefetchedWord(result.scheduled(on: targetDate))
+            WidgetCenter.shared.reloadAllTimelines()
+        } catch {
+            // Tomorrow's failure must not hide a valid word today. A later refresh retries.
+        }
+    }
+
+    private func refreshCurrent() async {
         do {
             // Bound retries if the clock keeps changing or a service returns stale results.
             for _ in 0..<3 {
                 try Task.checkCancellation()
-                if let savedEntry = storage.loadCurrentWord(), savedEntry.isCurrent(on: now()) {
+                let date = now()
+                if storage.loadCurrentWord()?.isValid(on: date) != true,
+                   let prefetched = storage.loadPrefetchedWord(), prefetched.isValid(on: date) {
+                    try storage.saveCurrentWord(prefetched)
+                    entry = prefetched
+                    WidgetCenter.shared.reloadAllTimelines()
+                    return
+                }
+                if let savedEntry = storage.loadCurrentWord(), savedEntry.isValid(on: now()) {
                     entry = savedEntry
                     guard savedEntry.pronunciationAudioURL == nil else { return }
                     let wordKey = savedEntry.word.lowercased()
@@ -79,10 +124,10 @@ final class WordViewModel: ObservableObject {
                         throw CancellationError()
                     } catch {
                         // Optional audio failure must not prevent a rollover during this request.
-                        if !savedEntry.isCurrent(on: now()) { continue }
+                        if !savedEntry.isValid(on: now()) { continue }
                         return
                     }
-                    guard savedEntry.isCurrent(on: now()) else { continue }
+                    guard savedEntry.isValid(on: now()) else { continue }
                     guard let audioURL else { return }
                     let enrichedEntry = WordEntry(
                         id: savedEntry.id,
@@ -98,7 +143,7 @@ final class WordViewModel: ObservableObject {
                         authoritativePacificDateKey: savedEntry.authoritativePacificDateKey
                     )
                     // No suspension between the final date check and save/publish.
-                    guard enrichedEntry.isCurrent(on: now()) else { continue }
+                    guard enrichedEntry.isValid(on: now()) else { continue }
                     try storage.saveCurrentWord(enrichedEntry)
                     entry = enrichedEntry
                     WidgetCenter.shared.reloadAllTimelines()
@@ -116,7 +161,7 @@ final class WordViewModel: ObservableObject {
                     throw error
                 }
                 try Task.checkCancellation()
-                guard newEntry.isCurrent(on: now()) else { continue }
+                guard newEntry.isValid(on: now()) else { continue }
                 // MainActor-isolated synchronous save/publish; no await after validation.
                 try storage.saveCurrentWord(newEntry)
                 entry = newEntry

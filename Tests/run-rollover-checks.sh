@@ -7,8 +7,14 @@ trap 'rm -rf "$check_dir"' EXIT
 xcrun swiftc -parse-as-library \
     -module-cache-path "$check_dir/module-cache" \
     Shared/WordEntry.swift \
+    WordOfTheDayWidget/WordTimelineProvider.swift \
     WordOfTheDayApp/Services/WordAPIService.swift \
     WordOfTheDayApp/ViewModels/WordViewModel.swift \
     Tests/RolloverChecks.swift \
     -o "$check_dir/checks"
 "$check_dir/checks"
+xcrun swiftc -parse-as-library \
+    -module-cache-path "$check_dir/module-cache" \
+    Shared/WordEntry.swift Shared/WordStorage.swift Tests/PrefetchStorageChecks.swift \
+    -o "$check_dir/storage-checks"
+"$check_dir/storage-checks"
