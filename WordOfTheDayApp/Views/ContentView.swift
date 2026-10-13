@@ -102,7 +102,7 @@ private struct TodayView: View {
             LazyVStack(alignment: .leading, spacing: 0) {
                 header.padding(.bottom, 20)
                 DictionaryRule(accented: true)
-                DictionaryWordContent(entry: viewModel.entry)
+                DictionaryWordContent(entry: viewModel.entry, textSelectionEnabled: true)
                 if let errorMessage = viewModel.errorMessage {
                     DictionaryRule()
                     Label(errorMessage, systemImage: "exclamationmark.triangle")
@@ -190,6 +190,7 @@ struct DictionaryWordContent: View {
     @Environment(\.colorScheme) private var colorScheme
     @StateObject private var speechService = SpeechService()
     let entry: WordEntry
+    var textSelectionEnabled = false
     @ScaledMetric(relativeTo: .largeTitle) private var wordSize: CGFloat = 48
 
     var body: some View {
@@ -219,13 +220,13 @@ struct DictionaryWordContent: View {
             }
             .padding(.vertical, 26)
             DictionaryRule()
-            DictionarySection(title: "Definition", number: "1", text: entry.definition)
+            DictionarySection(title: "Definition", number: "1", text: entry.definition, textSelectionEnabled: textSelectionEnabled)
             DictionaryRule()
             DictionarySection(title: "Example", text: entry.exampleSentence, italic: true)
             DictionaryRule()
-            DictionaryWordList(title: "Synonyms", words: entry.synonyms)
+            DictionaryWordList(title: "Synonyms", words: entry.synonyms, textSelectionEnabled: textSelectionEnabled)
             DictionaryRule()
-            DictionaryWordList(title: "Antonyms", words: entry.antonyms)
+            DictionaryWordList(title: "Antonyms", words: entry.antonyms, textSelectionEnabled: textSelectionEnabled)
         }
     }
 }
@@ -236,14 +237,20 @@ private struct DictionarySection: View {
     var number: String?
     let text: String
     var italic = false
+    var textSelectionEnabled = false
     var body: some View {
         VStack(alignment: .leading, spacing: 15) {
             DictionarySectionLabel(title)
             HStack(alignment: .firstTextBaseline, spacing: 14) {
                 if let number { Text(number).foregroundStyle(AppPalette.accent(colorScheme)) }
-                Text(text).italic(italic)
-                    .foregroundStyle(italic ? AppPalette.secondaryInk(colorScheme) : AppPalette.ink(colorScheme))
-                    .lineSpacing(6)
+                if textSelectionEnabled {
+                    DictionarySelectableText(text: text, textStyle: number == nil ? .body : .title3,
+                                             color: AppPalette.ink(colorScheme), lineSpacing: 6)
+                } else {
+                    Text(text).italic(italic)
+                        .foregroundStyle(italic ? AppPalette.secondaryInk(colorScheme) : AppPalette.ink(colorScheme))
+                        .lineSpacing(6)
+                }
             }
             .font(.system(number == nil ? .body : .title3, design: .serif))
             .padding(.leading, number == nil ? 30 : 0)
@@ -256,14 +263,21 @@ private struct DictionaryWordList: View {
     @Environment(\.colorScheme) private var colorScheme
     let title: String
     let words: [String]?
+    var textSelectionEnabled = false
     var body: some View {
         let filtered = words?.filter { !$0.trimmingCharacters(in: .whitespaces).isEmpty } ?? []
         VStack(alignment: .leading, spacing: 16) {
             DictionarySectionLabel(title)
-            Text(filtered.isEmpty ? "No \(title.lowercased()) available." : filtered.joined(separator: "  ·  "))
-                .font(.system(.body, design: .serif))
-                .foregroundStyle(AppPalette.secondaryInk(colorScheme))
-                .lineSpacing(5)
+            let text = filtered.isEmpty ? "No \(title.lowercased()) available." : filtered.joined(separator: "  ·  ")
+            if textSelectionEnabled {
+                DictionarySelectableText(text: text, textStyle: .body,
+                                         color: AppPalette.secondaryInk(colorScheme), lineSpacing: 5)
+            } else {
+                Text(text)
+                    .font(.system(.body, design: .serif))
+                    .foregroundStyle(AppPalette.secondaryInk(colorScheme))
+                    .lineSpacing(5)
+            }
         }
         .padding(.vertical, 26)
     }
@@ -489,6 +503,68 @@ private struct ActivityView: UIViewControllerRepresentable {
         UIActivityViewController(activityItems: activityItems, applicationActivities: nil)
     }
     func updateUIViewController(_ controller: UIActivityViewController, context: Context) {}
+}
+
+private struct DictionarySelectableText: View {
+    let text: String
+    let textStyle: UIFont.TextStyle
+    let color: Color
+    let lineSpacing: CGFloat
+    @ScaledMetric private var fontSize: CGFloat
+
+    init(text: String, textStyle: UIFont.TextStyle, color: Color, lineSpacing: CGFloat) {
+        self.text = text
+        self.textStyle = textStyle
+        self.color = color
+        self.lineSpacing = lineSpacing
+        _fontSize = ScaledMetric(wrappedValue: textStyle == .title3 ? 20 : 17,
+                                 relativeTo: textStyle == .title3 ? .title3 : .body)
+    }
+
+    private var font: UIFont {
+        let descriptor = UIFont.systemFont(ofSize: fontSize).fontDescriptor
+        return UIFont(descriptor: descriptor.withDesign(.serif) ?? descriptor, size: fontSize)
+    }
+
+    var body: some View {
+        SelectableTextView(text: text, font: font, color: UIColor(color), lineSpacing: lineSpacing)
+            .alignmentGuide(.firstTextBaseline) { _ in font.ascender }
+    }
+}
+
+private struct SelectableTextView: UIViewRepresentable {
+    let text: String
+    let font: UIFont
+    let color: UIColor
+    let lineSpacing: CGFloat
+
+    func makeUIView(context: Context) -> UITextView {
+        let view = UITextView()
+        view.isEditable = false
+        view.isSelectable = true
+        view.isScrollEnabled = false
+        view.backgroundColor = .clear
+        view.textContainerInset = .zero
+        view.textContainer.lineFragmentPadding = 0
+        view.setContentCompressionResistancePriority(.defaultLow, for: .horizontal)
+        return view
+    }
+
+    func updateUIView(_ view: UITextView, context: Context) {
+        let paragraph = NSMutableParagraphStyle()
+        paragraph.lineSpacing = lineSpacing
+        let content = NSAttributedString(string: text, attributes: [
+            .font: font, .foregroundColor: color, .paragraphStyle: paragraph
+        ])
+        if view.attributedText != content {
+            view.attributedText = content
+        }
+    }
+
+    func sizeThatFits(_ proposal: ProposedViewSize, uiView: UITextView, context: Context) -> CGSize? {
+        guard let width = proposal.width, width.isFinite else { return nil }
+        return uiView.sizeThatFits(CGSize(width: width, height: .greatestFiniteMagnitude))
+    }
 }
 
 private extension View {
